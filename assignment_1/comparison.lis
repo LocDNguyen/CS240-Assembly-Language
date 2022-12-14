@@ -1,0 +1,245 @@
+     1                                  ;***************************************************************************************************************************
+     2                                  ;Program name: "Comparing Floats". This program takes the input of multiple float numbers from the standard input device   *
+     3                                  ;using a single instruction and the output of multiple float numbers to the standard output device also using a single     *
+     4                                  ;instruction.  Copyright (C) 2022 Loc Nguyen.                                                                              *
+     5                                  ;                                                                                                                          *
+     6                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License *
+     7                                  ;version 3 as published by the Free Software Foundation.                                                                   *
+     8                                  ;This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied        *
+     9                                  ;warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.    *
+    10                                  ;A copy of the GNU General Public License v3 is available here:  <https:;www.gnu.org/licenses/>.                           *
+    11                                  ;***************************************************************************************************************************
+    12                                  
+    13                                  
+    14                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    15                                  ;
+    16                                  ;Author information
+    17                                  ;  Author name: Loc Nguyen
+    18                                  ;  Author email: lnguy121@csu.fullerton.edu
+    19                                  ;
+    20                                  ;Program information
+    21                                  ;  Program name: Comparing Floats
+    22                                  ;  Programming languages: Two modules in C++ and one module in X86
+    23                                  ;  Date program began: 2022-Aug-24
+    24                                  ;  Date of last update: 2022-Sep-3
+    25                                  ;  Date of reorganization of comments: 2022-Sep-3
+    26                                  ;  Files in this program: driver.cpp, isfloat.cpp, comparison.asm, run.sh
+    27                                  ;  Status: Finished. The program was tested extensively with no errors in Fedora 36.
+    28                                  ;
+    29                                  ;This file
+    30                                  ;   File name: comparison.asm
+    31                                  ;   Language: X86 with Intel syntax.
+    32                                  ;   Max page width: 133 columns
+    33                                  ;   Assemble: nasm -f elf64 -l comparison.lis -o comparison.o comparison.asm
+    34                                  
+    35                                  
+    36                                  ;===== Begin code area ============================================================================================================
+    37                                  extern printf
+    38                                  extern scanf
+    39                                  extern atof
+    40                                  extern isfloat
+    41                                  
+    42                                  global start
+    43                                  
+    44                                  segment .data
+    45 00000000 506C6561736520656E-     inputprompt db "Please enter two float numbers separated by white space. Press enter after the second input.", 10, 10, 0
+    45 00000009 7465722074776F2066-
+    45 00000012 6C6F6174206E756D62-
+    45 0000001B 657273207365706172-
+    45 00000024 617465642062792077-
+    45 0000002D 686974652073706163-
+    45 00000036 652E20507265737320-
+    45 0000003F 656E74657220616674-
+    45 00000048 657220746865207365-
+    45 00000051 636F6E6420696E7075-
+    45 0000005A 742E0A0A00         
+    46 0000005F 546865206C61726765-     return db "The larger number is %.13lf.", 10, 10, 0
+    46 00000068 72206E756D62657220-
+    46 00000071 697320252E31336C66-
+    46 0000007A 2E0A0A00           
+    47 0000007E 484552452E0A0A00        testing db "HERE.", 10, 10, 0
+    48 00000086 257320257300            two_float_format db "%s %s", 0
+    49 0000008C 0A5468657365206E75-     output_two_float db 10, "These numbers were entered:", 10,"%.13lf", 10,"%.13lf", 10, 10, 0
+    49 00000095 6D6265727320776572-
+    49 0000009E 6520656E7465726564-
+    49 000000A7 3A0A252E31336C660A-
+    49 000000B0 252E31336C660A0A00 
+    50 000000B9 546869732061737365-     end db "This assembly module will now return execution to the driver module.", 10, 0
+    50 000000C2 6D626C79206D6F6475-
+    50 000000CB 6C652077696C6C206E-
+    50 000000D4 6F772072657475726E-
+    50 000000DD 20657865637574696F-
+    50 000000E6 6E20746F2074686520-
+    50 000000EF 647269766572206D6F-
+    50 000000F8 64756C652E0A00     
+    51 000000FF 54686520736D616C6C-     end2 db "The smaller number will be returned to the driver.", 10, 10, 0
+    51 00000108 6572206E756D626572-
+    51 00000111 2077696C6C20626520-
+    51 0000011A 72657475726E656420-
+    51 00000123 746F20746865206472-
+    51 0000012C 697665722E0A0A00   
+    52 00000134 0A416E20696E76616C-     errormessage db 10, "An invalid input was detected. You may run this program again.", 10, 10, 0
+    52 0000013D 696420696E70757420-
+    52 00000146 776173206465746563-
+    52 0000014F 7465642E20596F7520-
+    52 00000158 6D61792072756E2074-
+    52 00000161 6869732070726F6772-
+    52 0000016A 616D20616761696E2E-
+    52 00000173 0A0A00             
+    53                                  
+    54                                  segment .bss  ;Reserved for uninitialized data
+    55                                  
+    56                                  segment .text ;Reserved for executing instructions.
+    57                                  
+    58                                  start:
+    59                                  
+    60                                  ;Prolog ===== Insurance for any caller of this assembly module ====================================================================
+    61                                  ;Any future program calling this module that the data in the caller's GPRs will not be modified.
+    62 00000000 55                      push rbp
+    63 00000001 4889E5                  mov  rbp,rsp
+    64 00000004 57                      push rdi                                                    ;Backup rdi
+    65 00000005 56                      push rsi                                                    ;Backup rsi
+    66 00000006 52                      push rdx                                                    ;Backup rdx
+    67 00000007 51                      push rcx                                                    ;Backup rcx
+    68 00000008 4150                    push r8                                                     ;Backup r8
+    69 0000000A 4151                    push r9                                                     ;Backup r9
+    70 0000000C 4152                    push r10                                                    ;Backup r10
+    71 0000000E 4153                    push r11                                                    ;Backup r11
+    72 00000010 4154                    push r12                                                    ;Backup r12
+    73 00000012 4155                    push r13                                                    ;Backup r13
+    74 00000014 4156                    push r14                                                    ;Backup r14
+    75 00000016 4157                    push r15                                                    ;Backup r15
+    76 00000018 53                      push rbx                                                    ;Backup rbx
+    77 00000019 9C                      pushf                                                       ;Backup rflags
+    78                                  
+    79                                  
+    80                                  
+    81                                  ;Display a prompt message asking for inputs
+    82 0000001A B800000000              mov rax, 0
+    83 0000001F 48BF-                   mov rdi, inputprompt           ;"Please enter two float numbers separated by white space. Press enter after the second input."
+    83 00000021 [0000000000000000] 
+    84 00000029 E8(00000000)            call printf
+    85                                  
+    86                                  
+    87                                  ;Taking 2 float number inputs
+    88 0000002E 4881EC00080000          sub rsp, 2048
+    89 00000035 B800000000              mov rax, 0
+    90 0000003A 48BF-                   mov rdi, two_float_format      ;"%s %s"
+    90 0000003C [8600000000000000] 
+    91 00000044 4889E6                  mov rsi, rsp                   ;rsi points to first quadword on the stack
+    92 00000047 4889E2                  mov rdx, rsp
+    93 0000004A 4881C200040000          add rdx, 1024                     ;rdx points to second quadword on the stack
+    94 00000051 4989E6                  mov r14, rsp
+    95 00000054 4989D7                  mov r15, rdx
+    96 00000057 E8(00000000)            call scanf
+    97                                  
+    98                                  
+    99                                  ;Validating both inputs if they are floats
+   100 0000005C B800000000              mov rax, 0
+   101 00000061 4C89F7                  mov rdi, r14
+   102 00000064 E8(00000000)            call isfloat                   ;If not a float, jump to error
+   103 00000069 4883F800                cmp rax, 0
+   104 0000006D 7439                    je error
+   105                                  
+   106 0000006F B800000000              mov rax, 0
+   107 00000074 4C89FF                  mov rdi, r15
+   108 00000077 E8(00000000)            call isfloat
+   109 0000007C 4883F800                cmp rax, 0
+   110 00000080 7426                    je error
+   111                                  
+   112                                  ;Convert valid values to floats and store them
+   113 00000082 B800000000              mov rax, 0
+   114 00000087 4C89F7                  mov rdi, r14
+   115 0000008A E8(00000000)            call atof
+   116 0000008F F2440F10C0              movsd xmm8, xmm0
+   117                                  
+   118 00000094 B800000000              mov rax, 0
+   119 00000099 4C89FF                  mov rdi, r15
+   120 0000009C E8(00000000)            call atof
+   121 000000A1 F2440F10C8              movsd xmm9, xmm0
+   122                                  
+   123 000000A6 EB31                    jmp inputted
+   124                                  
+   125                                  
+   126                                  error:
+   127                                  ;Display error message and return -1
+   128 000000A8 B800000000              mov rax, 0
+   129 000000AD 48BF-                   mov rdi, errormessage          ;"An invalid input was detected. You may run this program again."
+   129 000000AF [3401000000000000] 
+   130 000000B7 E8(00000000)            call printf
+   131                                  
+   132 000000BC 4881C400080000          add rsp, 2048
+   133                                  
+   134 000000C3 48C7C0FFFFFFFF          mov rax, -1
+   135 000000CA F24C0F2AD0              cvtsi2sd xmm10, rax
+   136 000000CF F2410F10C2              movsd xmm0, xmm10              ;Return -1 to the caller
+   137 000000D4 E990000000              jmp restore                    ;Jump to area that restores original values to integer registers and exit
+   138                                  
+   139                                  
+   140                                  inputted:
+   141                                  ;Display the two numbers inputted
+   142 000000D9 B802000000              mov rax, 2                     ;printf will need to access this many SSE registers.
+   143 000000DE 48BF-                   mov rdi, output_two_float      ;"The two numbers inputted are %1.15lf and %1.15lf"
+   143 000000E0 [8C00000000000000] 
+   144 000000E8 F2410F10C0              movsd xmm0, xmm8
+   145 000000ED F2410F10C9              movsd xmm1, xmm9
+   146 000000F2 F2450F10F0              movsd xmm14, xmm8              ;Make a backup copy
+   147 000000F7 F2450F10F9              movsd xmm15, xmm9              ;Make a backup copy
+   148 000000FC E8(00000000)            call printf
+   149                                  
+   150                                  
+   151                                  sort:
+   152                                  ;Sort out which of the two numbers are larger
+   153 00000101 66450F2EF7              ucomisd xmm14,  xmm15          ;Compare two floating point numbers
+   154 00000106 760F                    jbe larger                     ;Jump to block labeled "larger"
+   155 00000108 F2410F10CE              movsd xmm1, xmm14
+   156 0000010D F2450F10F7              movsd xmm14, xmm15
+   157 00000112 F2440F10F9              movsd xmm15, xmm1
+   158                                  
+   159                                  
+   160                                  larger:
+   161                                  ;Display the larger number of the two inputs
+   162 00000117 B801000000              mov rax, 1
+   163 0000011C 48BF-                   mov rdi, return                ;"The larger number is %1.15lf."
+   163 0000011E [5F00000000000000] 
+   164 00000126 F2410F10C7              movsd xmm0, xmm15
+   165 0000012B F2450F10EF              movsd xmm13, xmm15             ;Make a backup copy
+   166 00000130 E8(00000000)            call printf
+   167                                  ;========== Prepare to exit from this program ==================================================================
+   168                                  
+   169                                  ;Display good-bye messages
+   170 00000135 B800000000              mov rax, 0
+   171 0000013A 48BF-                   mov rdi, end                   ;"This assembly module will now return execution to the driver module."
+   171 0000013C [B900000000000000] 
+   172 00000144 E8(00000000)            call printf
+   173                                  
+   174 00000149 B800000000              mov rax, 0
+   175 0000014E 48BF-                   mov rdi, end2                  ;"The smaller number will be returned to the driver."
+   175 00000150 [FF00000000000000] 
+   176 00000158 E8(00000000)            call printf
+   177                                  
+   178 0000015D 4881C400080000          add rsp, 2048                  ;Reverse the sub near the beginning of this asm function.
+   179                                  
+   180 00000164 F2410F10C6              movsd xmm0, xmm14              ;Select the smaller value for return to caller.
+   181                                  
+   182                                  ;===== Restore original values to integer registers ===============================================================================
+   183                                  restore:
+   184 00000169 9D                      popf                                                        ;Restore rflags
+   185 0000016A 5B                      pop rbx                                                     ;Restore rbx
+   186 0000016B 415F                    pop r15                                                     ;Restore r15
+   187 0000016D 415E                    pop r14                                                     ;Restore r14
+   188 0000016F 415D                    pop r13                                                     ;Restore r13
+   189 00000171 415C                    pop r12                                                     ;Restore r12
+   190 00000173 415B                    pop r11                                                     ;Restore r11
+   191 00000175 415A                    pop r10                                                     ;Restore r10
+   192 00000177 4159                    pop r9                                                      ;Restore r9
+   193 00000179 4158                    pop r8                                                      ;Restore r8
+   194 0000017B 59                      pop rcx                                                     ;Restore rcx
+   195 0000017C 5A                      pop rdx                                                     ;Restore rdx
+   196 0000017D 5E                      pop rsi                                                     ;Restore rsi
+   197 0000017E 5F                      pop rdi                                                     ;Restore rdi
+   198 0000017F 5D                      pop rbp                                                     ;Restore rbp
+   199                                  
+   200 00000180 C3                      ret
+   201                                  
+   202                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
