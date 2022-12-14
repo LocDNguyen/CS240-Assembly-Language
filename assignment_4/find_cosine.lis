@@ -1,0 +1,658 @@
+     1                                  ;****************************************************************************************************************************
+     2                                  ; THIS PROGRAM DOES NOT HAVE INPUT VALIDATION                                                                               *
+     3                                  ;                                                                                                                           *
+     4                                  ; Program name: "Find cosine". This program takes a float input and converts it to it's radian counterpart as well as       *
+     5                                  ; outputs the time in ticks. Then the program finds the cosine of the float input then displays the ticks again.            *
+     6                                  ; Copyright (C) 2022 Loc Nguyen.                                                                                            *
+     7                                  ;                                                                                                                           *
+     8                                  ; This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License *
+     9                                  ; version 3 as published by the Free Software Foundation.                                                                   *
+    10                                  ; This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied        *
+    11                                  ; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.    *
+    12                                  ; A copy of the GNU General Public License v3 is available here:  <https:;www.gnu.org/licenses/>.                           *
+    13                                  ; ***************************************************************************************************************************
+    14                                  ;
+    15                                  ;
+    16                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    17                                  ;
+    18                                  ; Author information
+    19                                  ;   Author name: Loc Nguyen
+    20                                  ;   Author email: lnguy121@csu.fullerton.edu
+    21                                  ;
+    22                                  ; Program information
+    23                                  ;   Program name: Find cosine
+    24                                  ;   Programming languages: 6 modules in X86, and one module in bash
+    25                                  ;   Date program began: 2022-Oct-24
+    26                                  ;   Date of last update: 2022-Oct-29
+    27                                  ;   Date of reorganization of comments: 2022-Oct-29
+    28                                  ;   Files in this program: find_cosine.asm, atof.asm, cosine.asm, ftoa.asm, itoa.asm, strlen.asm, run.sh
+    29                                  ;   Status: Finished. The program was tested extensively with no errors in Fedora 36.
+    30                                  ;
+    31                                  ; This file
+    32                                  ;    File name: find_cosine.asm
+    33                                  ;    Language: X86 with Intel syntax
+    34                                  ;    Max page width: 133 columns
+    35                                  ;    Assemble: nasm -f elf64 -l find_cosine.lis -o find_cosine.o find_cosine.asm
+    36                                  ;
+    37                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    38                                  
+    39                                  ;===== Begin main assembly program here ================================================================================
+    40                                  ;All correctly formed program structures have one entry point and one exit point.
+    41                                  ;Below is the declaration of the entry point to this program
+    42                                  global _start                                               ;The global declaration is required by the linker.
+    43                                  
+    44                                  ;Declare library functions
+    45                                  extern itoa
+    46                                  extern strlen
+    47                                  extern atof
+    48                                  extern ftoa
+    49                                  extern cosine
+    50                                  
+    51                                  ;Data destinations (constants without data size specified)
+    52                                  Stdin  equ 0
+    53                                  Stdout equ 1
+    54                                  Stderror equ 2
+    55                                  
+    56                                  ;Kernel function code numbers
+    57                                  system_read  equ 0
+    58                                  system_write equ 1        ;Kernel function
+    59                                  system_terminate equ 60   ;Kernel function
+    60                                  ;System_time equ 201       :Kernel function "get_time" not used in this program
+    61                                  
+    62                                  ;Named constants
+    63                                  Null equ 0
+    64                                  Exit_with_success equ 0
+    65                                  Line_feed equ 10
+    66                                  Numeric_string_array_size equ 32
+    67                                  
+    68                                  
+    69                                  
+    70                                  section .data
+    71                                  
+    72 00000000 57656C636F6D652074-     welcome db "Welcome to Accurate Cosines by Loc Nguyen.", 10, 10, 0
+    72 00000009 6F2041636375726174-
+    72 00000012 6520436F73696E6573-
+    72 0000001B 206279204C6F63204E-
+    72 00000024 677579656E2E0A0A00 
+    73                                  
+    74 0000002D 5468652074696D6520-     time_now db "The time is now ", Null
+    74 00000036 6973206E6F772000   
+    75                                  
+    76 0000003E 20746963732E0A00        tics db " tics.", 10, Null
+    77                                  
+    78 00000046 207365636F6E64732E-     seconds db " seconds.", 10, Null
+    78 0000004F 0A00               
+    79                                  
+    80 00000051 426520617761726520-     caution db "Be aware that there is no input validation in this program.", 10, 0
+    80 0000005A 746861742074686572-
+    80 00000063 65206973206E6F2069-
+    80 0000006C 6E7075742076616C69-
+    80 00000075 646174696F6E20696E-
+    80 0000007E 20746869732070726F-
+    80 00000087 6772616D2E0A00     
+    81                                  
+    82 0000008E 506C6561736520656E-     prompt db "Please enter an angle in degrees and press enter: ", Null
+    82 00000097 74657220616E20616E-
+    82 000000A0 676C6520696E206465-
+    82 000000A9 677265657320616E64-
+    82 000000B2 20707265737320656E-
+    82 000000BB 7465723A2000       
+    83                                  
+    84 000000C1 596F7520656E746572-     confirmation db "You entered ", Null
+    84 000000CA 65642000           
+    85                                  
+    86 000000CE 546865206571756976-     in_radians db "The equivalent radians is ", Null
+    86 000000D7 616C656E7420726164-
+    86 000000E0 69616E732069732000 
+    87                                  
+    88 000000E9 54686520636F73696E-     in_cosine db "The cosine of those degrees is ", Null
+    88 000000F2 65206F662074686F73-
+    88 000000FB 652064656772656573-
+    88 00000104 2069732000         
+    89                                  
+    90 00000109 0A00                    newline db 0xa, Null
+    91                                  
+    92 0000010B 486176652061206E69-     bye db "Have a nice day. Bye.", 0
+    92 00000114 6365206461792E2042-
+    92 0000011D 79652E00           
+    93                                  
+    94                                  
+    95                                  
+    96                                  section .bss
+    97                                  
+    98 00000000 <res 20h>               first_tic resb Numeric_string_array_size
+    99                                  
+   100 00000020 <res 20h>               second_tic resb Numeric_string_array_size
+   101                                  
+   102 00000040 <res 20h>               input_integer_string resb Numeric_string_array_size
+   103                                  
+   104 00000060 <res 20h>               output_string resb Numeric_string_array_size
+   105                                  
+   106 00000080 <res 20h>               radian_string resb Numeric_string_array_size
+   107                                  
+   108 000000A0 <res 20h>               cosine_string resb Numeric_string_array_size
+   109                                  
+   110                                  
+   111                                  
+   112                                  section .text                   ;The executable area begins here.
+   113                                  _start:                         ;Main entry point.  Execution begins here.  The name must be _start.
+   114                                  
+   115                                  ;There is no backup of registers because there is not caller.  We only backup registers to protect the data belonging to the caller.
+   116                                  
+   117                                  
+   118                                  
+   119                                  
+   120                                  ;Output a newline
+   121 00000000 C60425[09010000]0A      mov byte [newline],0xa
+   122 00000008 C60425[0A010000]00      mov byte [newline+1],Null
+   123 00000010 B801000000              mov    rax, system_write
+   124 00000015 BF01000000              mov    rdi, Stdout
+   125 0000001A 48BE-                   mov    rsi, newline
+   125 0000001C [0901000000000000] 
+   126 00000024 BA01000000              mov    rdx, 1               ;Number of newlines to be written
+   127 00000029 0F05                    syscall
+   128                                  
+   129                                  
+   130                                  
+   131                                  
+   132                                  ;////////////////////////////////////////////////////////Welcome////////////////////////////////////////////////////
+   133                                  ;Obtain the length of the welcome string
+   134 0000002B B800000000              mov        rax, 0
+   135 00000030 48BF-                   mov        rdi, welcome
+   135 00000032 [0000000000000000] 
+   136 0000003A E8(00000000)            call       strlen
+   137 0000003F 4989C4                  mov        r12, rax            ;r12 holds length of the welcome string
+   138                                  
+   139                                  ;Output the welcome message
+   140 00000042 B801000000              mov        rax, system_write
+   141 00000047 BF01000000              mov        rdi, Stdout
+   142 0000004C 48BE-                   mov        rsi, welcome
+   142 0000004E [0000000000000000] 
+   143 00000056 4C89E2                  mov        rdx, r12            ;Number of bytes to be written.
+   144 00000059 0F05                    syscall
+   145                                  ;////////////////////////////////////////////////////////Welcome////////////////////////////////////////////////////
+   146                                  
+   147                                  
+   148                                  
+   149                                  
+   150                                  ;////////////////////////////////////////////////////////Tics////////////////////////////////////////////////////
+   151                                  ;Obtain the length of the time_now string
+   152 0000005B B800000000              mov        rax, 0
+   153 00000060 48BF-                   mov        rdi, time_now
+   153 00000062 [2D00000000000000] 
+   154 0000006A E8(00000000)            call       strlen
+   155 0000006F 4989C4                  mov        r12, rax            ;r12 holds number of bytes in the string instruction
+   156                                  
+   157                                  ;Output the time_now string
+   158 00000072 B801000000              mov        rax, system_write
+   159 00000077 BF01000000              mov        rdi, Stdout
+   160 0000007C 48BE-                   mov        rsi, time_now
+   160 0000007E [2D00000000000000] 
+   161 00000086 4C89E2                  mov        rdx, r12            ;Number of bytes to be written.
+   162 00000089 0F05                    syscall
+   163                                  
+   164                                  ;Get the time
+   165 0000008B 0FA2                    cpuid
+   166 0000008D 0F31                    rdtsc
+   167 0000008F 48C1E220                shl rdx, 32
+   168 00000093 4809C2                  or rdx, rax
+   169 00000096 4989D0                  mov r8, rdx
+   170                                  
+   171 00000099 B800000000              mov rax, 0
+   172 0000009E 4C89C7                  mov rdi, r8
+   173 000000A1 48BE-                   mov rsi, first_tic
+   173 000000A3 [0000000000000000] 
+   174 000000AB E8(00000000)            call itoa
+   175 000000B0 49BF-                   mov r15, first_tic     ;r15 holds the string representation of the square of the input number
+   175 000000B2 [0000000000000000] 
+   176                                  
+   177                                  ;Get length of tic
+   178 000000BA B800000000              mov    rax, 0
+   179 000000BF 4C89FF                  mov    rdi, r15
+   180 000000C2 E8(00000000)            call   strlen
+   181 000000C7 4989C4                  mov    r12, rax
+   182                                  ;Output the tic
+   183 000000CA B801000000              mov    rax, system_write
+   184 000000CF BF01000000              mov    rdi, Stdout
+   185 000000D4 4C89FE                  mov    rsi, r15
+   186 000000D7 4C89E2                  mov    rdx, r12             ;Number of bytes to be written.
+   187 000000DA 0F05                    syscall
+   188                                  
+   189                                  ;Obtain the length of the tics string
+   190 000000DC B800000000              mov        rax, 0
+   191 000000E1 48BF-                   mov        rdi, tics
+   191 000000E3 [3E00000000000000] 
+   192 000000EB E8(00000000)            call       strlen
+   193 000000F0 4989C4                  mov        r12, rax            ;r12 holds number of bytes in the string instruction
+   194                                  
+   195                                  ;Output the tics string
+   196 000000F3 B801000000              mov        rax, system_write
+   197 000000F8 BF01000000              mov        rdi, Stdout
+   198 000000FD 48BE-                   mov        rsi, tics
+   198 000000FF [3E00000000000000] 
+   199 00000107 4C89E2                  mov        rdx, r12            ;Number of bytes to be written.
+   200 0000010A 0F05                    syscall
+   201                                  ;////////////////////////////////////////////////////////Tics////////////////////////////////////////////////////
+   202                                  
+   203                                  
+   204                                  
+   205                                  
+   206                                  ;Output a newline
+   207 0000010C C60425[09010000]0A      mov byte [newline],0xa
+   208 00000114 C60425[0A010000]00      mov byte [newline+1],Null
+   209 0000011C B801000000              mov    rax, system_write
+   210 00000121 BF01000000              mov    rdi, Stdout
+   211 00000126 48BE-                   mov    rsi, newline
+   211 00000128 [0901000000000000] 
+   212 00000130 BA01000000              mov    rdx, 1               ;Number of newlines to be written
+   213 00000135 0F05                    syscall
+   214                                  
+   215                                  
+   216                                  
+   217                                  
+   218                                  ;////////////////////////////////////////////////////////Prompt////////////////////////////////////////////////////
+   219                                  ;Obtain the length of the prompt string
+   220 00000137 B800000000              mov        rax, 0
+   221 0000013C 48BF-                   mov        rdi, prompt
+   221 0000013E [8E00000000000000] 
+   222 00000146 E8(00000000)            call       strlen
+   223 0000014B 4989C4                  mov        r12, rax            ;r12 holds length of the prompt string
+   224                                  
+   225                                  ;Output the prompt for the an integer
+   226 0000014E B801000000              mov        rax, system_write
+   227 00000153 BF01000000              mov        rdi, Stdout
+   228 00000158 48BE-                   mov        rsi, prompt
+   228 0000015A [8E00000000000000] 
+   229 00000162 4C89E2                  mov        rdx, r12              ;Number of bytes to be written.
+   230 00000165 0F05                    syscall
+   231                                  
+   232                                  ;Strategy based on Jorgensen, Chapter 13
+   233                                  ;Input char from keyboard one byte at a time.
+   234                                  
+   235                                  ;Preloop initialization
+   236 00000167 48BB-                   mov rbx, input_integer_string
+   236 00000169 [4000000000000000] 
+   237 00000171 41BC00000000            mov r12,0       ;r12 is counter of number of bytes inputted
+   238 00000177 6A00                    push qword 0    ;Storage for incoming byte
+   239                                  
+   240                                  Begin_loop:         ;This is the one point of entry into the loop structure.
+   241 00000179 B800000000              mov    rax, system_read
+   242 0000017E BF00000000              mov    rdi, Stdin
+   243 00000183 4889E6                  mov    rsi, rsp
+   244 00000186 BA01000000              mov    rdx, 1    ;one byte will be read from the input buffer
+   245 0000018B 0F05                    syscall
+   246                                  
+   247 0000018D 8A0424                  mov al, byte [rsp]
+   248                                  
+   249 00000190 3C0A                    cmp al, Line_feed
+   250 00000192 7410                    je Exit_loop     ;If EOL is encountered then discard EOL and exit the loop.
+   251                                                ;This is the only point in the loop structure where exit is allowed.
+   252                                  
+   253 00000194 49FFC4                  inc r12          ;Count the number of bytes placed into the array.
+   254                                  
+   255                                  ;Check that the destination array has not overflowed.
+   256 00000197 4983FC20                cmp r12,Numeric_string_array_size
+   257                                  ;if(r12 >= Input_array_size)
+   258 0000019B 7D05                       jge end_if_else
+   259                                  ;else (r12 < Numeric_string_array_size)
+   260 0000019D 8803                        mov byte [rbx],al
+   261 0000019F 48FFC3                      inc rbx
+   262                                  end_if_else:
+   263                                  
+   264 000001A2 EBD5                    jmp Begin_loop
+   265                                  
+   266                                  Exit_loop:
+   267                                  ;The algorithm implemented above allows upto (Numeric_string_array_size - 1) bytes to be entered into the
+   268                                  ;destination array, thereby, reserving one byte for the null character.  However, if the user does
+   269                                  ;enter more than (Numeric_string_array_size - 1) bytes of data then the excess bytes are read and discarded.
+   270                                  ;The algorithm was adapted from Jorgensen, Chapter 13, Section 13.4.1
+   271 000001A4 C60300                  mov byte [rbx],Null        ;Append the null character.
+   272                                  
+   273 000001A7 58                      pop rax          ;Return the stack to its former state.
+   274                                  ;input_integer_string holds the user input.  However, if the user inputted more than (Numeric_string_array_size - 1)
+   275                                  ;bytes then the excess will be discarded.  The last byte in the array is reserved for the null char.
+   276                                  ;////////////////////////////////////////////////////////Prompt////////////////////////////////////////////////////
+   277                                  
+   278                                  
+   279                                  
+   280                                  
+   281                                  ;Output a newline
+   282 000001A8 C60425[09010000]0A      mov byte [newline],0xa
+   283 000001B0 C60425[0A010000]00      mov byte [newline+1],Null
+   284 000001B8 B801000000              mov    rax, system_write
+   285 000001BD BF01000000              mov    rdi, Stdout
+   286 000001C2 48BE-                   mov    rsi, newline
+   286 000001C4 [0901000000000000] 
+   287 000001CC BA01000000              mov    rdx, 1               ;Number of newlines to be written
+   288 000001D1 0F05                    syscall
+   289                                  
+   290                                  
+   291                                  
+   292                                  
+   293                                  ;////////////////////////////////////////////////////////Confirmation////////////////////////////////////////////////////
+   294                                  ;Obtain the length of the confirmation message
+   295 000001D3 B800000000              mov rax, 0
+   296 000001D8 48BF-                   mov rdi, confirmation
+   296 000001DA [C100000000000000] 
+   297 000001E2 E8(00000000)            call strlen
+   298 000001E7 4989C4                  mov r12, rax
+   299                                  ;Write the value that was recently entered.
+   300 000001EA B801000000              mov    rax, system_write
+   301 000001EF BF01000000              mov    rdi, Stdout
+   302 000001F4 48BE-                   mov    rsi, confirmation    ;"You entered "
+   302 000001F6 [C100000000000000] 
+   303 000001FE 4C89E2                  mov    rdx, r12             ;Number of bytes to be written.
+   304 00000201 0F05                    syscall
+   305                                  
+   306                                  ;Obtain the length of string holding the inputted number
+   307 00000203 B800000000              mov    rax, 0
+   308 00000208 48BF-                   mov    rdi, input_integer_string
+   308 0000020A [4000000000000000] 
+   309 00000212 E8(00000000)            call   strlen
+   310 00000217 4989C4                  mov    r12, rax
+   311                                  ;Output the number
+   312 0000021A B801000000              mov    rax, system_write
+   313 0000021F BF01000000              mov    rdi, Stdout
+   314 00000224 48BE-                   mov    rsi, input_integer_string
+   314 00000226 [4000000000000000] 
+   315 0000022E 4C89E2                  mov    rdx, r12             ;Number of bytes to be written.
+   316 00000231 0F05                    syscall
+   317                                  ;////////////////////////////////////////////////////////Confirmation////////////////////////////////////////////////////
+   318                                  
+   319                                  
+   320                                  
+   321                                  
+   322                                  ;Output a newline
+   323 00000233 C60425[09010000]0A      mov byte [newline],0xa
+   324 0000023B C60425[0A010000]00      mov byte [newline+1],Null
+   325 00000243 B801000000              mov    rax, system_write
+   326 00000248 BF01000000              mov    rdi, Stdout
+   327 0000024D 48BE-                   mov    rsi, newline
+   327 0000024F [0901000000000000] 
+   328 00000257 BA01000000              mov    rdx, 1               ;Number of newlines to be written
+   329 0000025C 0F05                    syscall
+   330                                  
+   331                                  ;Output a newline
+   332 0000025E C60425[09010000]0A      mov byte [newline],0xa
+   333 00000266 C60425[0A010000]00      mov byte [newline+1],Null
+   334 0000026E B801000000              mov    rax, system_write
+   335 00000273 BF01000000              mov    rdi, Stdout
+   336 00000278 48BE-                   mov    rsi, newline
+   336 0000027A [0901000000000000] 
+   337 00000282 BA01000000              mov    rdx, 1               ;Number of newlines to be written
+   338 00000287 0F05                    syscall
+   339                                  
+   340                                  
+   341                                  
+   342                                  
+   343                                  ;////////////////////////////////////////////////////////Radian////////////////////////////////////////////////////
+   344                                  ;Output the square stored as string to the console
+   345                                  ;Compute the length of the descriptive message
+   346 00000289 B800000000              mov rax, 0
+   347 0000028E 48BF-                   mov rdi, in_radians           ;"The equivalent in radians is  "
+   347 00000290 [CE00000000000000] 
+   348 00000298 E8(00000000)            call strlen
+   349 0000029D 4989C1                  mov r9, rax
+   350                                  
+   351                                  ;Output descriptive message
+   352 000002A0 B801000000              mov rax, system_write
+   353 000002A5 BF01000000              mov rdi, Stdout
+   354 000002AA 48BE-                   mov rsi, in_radians           ;"The square of the inputted integer is ",0
+   354 000002AC [CE00000000000000] 
+   355 000002B4 4C89CA                  mov rdx, r9
+   356 000002B7 0F05                    syscall
+   357                                  
+   358 000002B9 B800000000              mov rax, 0
+   359 000002BE 48BF-                   mov rdi, input_integer_string
+   359 000002C0 [4000000000000000] 
+   360 000002C8 E8(00000000)            call atof
+   361 000002CD F2440F10C0              movsd xmm8, xmm0
+   362                                  
+   363                                  ;get radian value
+   364 000002D2 BBB4000000              mov rbx, 180
+   365 000002D7 F24C0F2AD3              cvtsi2sd xmm10, rbx
+   366 000002DC 48B8182D4454FB2109-     mov rax, 0x400921FB54442D18
+   366 000002E5 40                 
+   367 000002E6 50                      push rax
+   368 000002E7 F2440F100C24            movsd xmm9, [rsp]
+   369 000002ED 58                      pop rax
+   370                                  
+   371 000002EE F2450F59C1              mulsd xmm8, xmm9
+   372 000002F3 F2450F5EC2              divsd xmm8, xmm10
+   373                                  
+   374                                  ;call ftoa to get radian value
+   375 000002F8 B801000000              mov rax, 1
+   376 000002FD F2410F10C0              movsd xmm0, xmm8
+   377 00000302 48BF-                   mov rdi, radian_string
+   377 00000304 [8000000000000000] 
+   378 0000030C E8(00000000)            call ftoa
+   379 00000311 4989C4                  mov r12, rax
+   380                                  
+   381                                  ;output radian value
+   382 00000314 B801000000              mov rax, system_write
+   383 00000319 BF01000000              mov rdi, Stdout
+   384 0000031E 48BE-                   mov rsi, radian_string
+   384 00000320 [8000000000000000] 
+   385 00000328 4C89CA                  mov rdx, r9
+   386 0000032B 0F05                    syscall
+   387                                  ;////////////////////////////////////////////////////////Radian////////////////////////////////////////////////////
+   388                                  
+   389                                  
+   390                                  
+   391                                  
+   392                                  ;Output a newline
+   393 0000032D C60425[09010000]0A      mov byte [newline],0xa
+   394 00000335 C60425[0A010000]00      mov byte [newline+1],Null
+   395 0000033D B801000000              mov    rax, system_write
+   396 00000342 BF01000000              mov    rdi, Stdout
+   397 00000347 48BE-                   mov    rsi, newline
+   397 00000349 [0901000000000000] 
+   398 00000351 BA01000000              mov    rdx, 1               ;Number of newlines to be written
+   399 00000356 0F05                    syscall
+   400                                  
+   401                                  ;Output a newline
+   402 00000358 C60425[09010000]0A      mov    byte [newline],0xa        ;<==Insurance: assure that newline points to the new line character
+   403 00000360 C60425[0A010000]00      mov    byte [newline+1],Null     ;<==Terminate with the null character.
+   404 00000368 B801000000              mov    rax, system_write
+   405 0000036D BF01000000              mov    rdi, Stdout
+   406 00000372 48BE-                   mov    rsi, newline       ;<==newline has changed
+   406 00000374 [0901000000000000] 
+   407 0000037C BA01000000              mov    rdx, 1             ;Number of bytes to be written
+   408 00000381 0F05                    syscall
+   409                                  
+   410                                  
+   411                                  
+   412                                  
+   413                                  ;////////////////////////////////////////////////////////Cosine////////////////////////////////////////////////////
+   414                                  ;call cosine
+   415 00000383 B801000000              mov rax, 1
+   416 00000388 F2410F10C0              movsd xmm0, xmm8
+   417 0000038D E8(00000000)            call cosine
+   418 00000392 F2440F10C8              movsd xmm9, xmm0
+   419                                  
+   420                                  ;get strlen of cosine_prompt
+   421 00000397 B800000000              mov rax, 0
+   422 0000039C 48BF-                   mov rdi, in_cosine
+   422 0000039E [E900000000000000] 
+   423 000003A6 E8(00000000)            call strlen
+   424 000003AB 4989C7                  mov r15, rax
+   425                                  
+   426                                  ;output cosine_prompt
+   427 000003AE B801000000              mov rax, system_write
+   428 000003B3 BF01000000              mov rdi, Stdout
+   429 000003B8 48BE-                   mov rsi, in_cosine
+   429 000003BA [E900000000000000] 
+   430 000003C2 4C89FA                  mov rdx, r15
+   431 000003C5 0F05                    syscall
+   432                                  
+   433                                  ; call ftoa
+   434 000003C7 B801000000              mov rax, 1
+   435 000003CC F2410F10C1              movsd xmm0, xmm9
+   436 000003D1 48BF-                   mov rdi, cosine_string
+   436 000003D3 [A000000000000000] 
+   437 000003DB E8(00000000)            call ftoa
+   438 000003E0 4989C4                  mov r12, rax
+   439                                  
+   440                                  ;output float_string
+   441 000003E3 B801000000              mov rax, system_write
+   442 000003E8 BF01000000              mov rdi, Stdout
+   443 000003ED 48BE-                   mov rsi, cosine_string
+   443 000003EF [A000000000000000] 
+   444 000003F7 4C89E2                  mov rdx, r12
+   445 000003FA 0F05                    syscall
+   446                                  ;////////////////////////////////////////////////////////Cosine////////////////////////////////////////////////////
+   447                                  
+   448                                  
+   449                                  
+   450                                  
+   451                                  ;Output a newline
+   452 000003FC C60425[09010000]0A      mov byte [newline],0xa
+   453 00000404 C60425[0A010000]00      mov byte [newline+1],Null
+   454 0000040C B801000000              mov    rax, system_write
+   455 00000411 BF01000000              mov    rdi, Stdout
+   456 00000416 48BE-                   mov    rsi, newline
+   456 00000418 [0901000000000000] 
+   457 00000420 BA01000000              mov    rdx, 1               ;Number of newlines to be written
+   458 00000425 0F05                    syscall
+   459                                  
+   460                                  ;Output a newline
+   461 00000427 C60425[09010000]0A      mov    byte [newline],0xa        ;<==Insurance: assure that newline points to the new line character
+   462 0000042F C60425[0A010000]00      mov    byte [newline+1],Null     ;<==Terminate with the null character.
+   463 00000437 B801000000              mov    rax, system_write
+   464 0000043C BF01000000              mov    rdi, Stdout
+   465 00000441 48BE-                   mov    rsi, newline       ;<==newline has changed
+   465 00000443 [0901000000000000] 
+   466 0000044B BA01000000              mov    rdx, 1             ;Number of bytes to be written
+   467 00000450 0F05                    syscall
+   468                                  
+   469                                  
+   470                                  
+   471                                  
+   472                                  ;////////////////////////////////////////////////////////Tics////////////////////////////////////////////////////
+   473                                  ;Obtain the length of the time_now string
+   474 00000452 B800000000              mov        rax, 0
+   475 00000457 48BF-                   mov        rdi, time_now
+   475 00000459 [2D00000000000000] 
+   476 00000461 E8(00000000)            call       strlen
+   477 00000466 4989C4                  mov        r12, rax            ;r12 holds number of bytes in the string instruction
+   478                                  
+   479                                  ;Output the time_now string
+   480 00000469 B801000000              mov        rax, system_write
+   481 0000046E BF01000000              mov        rdi, Stdout
+   482 00000473 48BE-                   mov        rsi, time_now
+   482 00000475 [2D00000000000000] 
+   483 0000047D 4C89E2                  mov        rdx, r12            ;Number of bytes to be written.
+   484 00000480 0F05                    syscall
+   485                                  
+   486                                  ;Get the time
+   487 00000482 0FA2                    cpuid
+   488 00000484 0F31                    rdtsc
+   489 00000486 48C1E220                shl rdx, 32
+   490 0000048A 4809C2                  or rdx, rax
+   491 0000048D 4989D6                  mov r14, rdx
+   492                                  
+   493 00000490 B800000000              mov rax, 0
+   494 00000495 4C89F7                  mov rdi, r14
+   495 00000498 48BE-                   mov rsi, second_tic
+   495 0000049A [2000000000000000] 
+   496 000004A2 E8(00000000)            call itoa
+   497 000004A7 49BF-                   mov r15, second_tic     ;r15 holds the string representation of the square of the input number
+   497 000004A9 [2000000000000000] 
+   498                                  
+   499                                  ;Get length of tic
+   500 000004B1 B800000000              mov    rax, 0
+   501 000004B6 4C89FF                  mov    rdi, r15
+   502 000004B9 E8(00000000)            call   strlen
+   503 000004BE 4989C4                  mov    r12, rax
+   504                                  ;Output the tic
+   505 000004C1 B801000000              mov    rax, system_write
+   506 000004C6 BF01000000              mov    rdi, Stdout
+   507 000004CB 4C89FE                  mov    rsi, r15
+   508 000004CE 4C89E2                  mov    rdx, r12             ;Number of bytes to be written.
+   509 000004D1 0F05                    syscall
+   510                                  
+   511                                  ;Obtain the length of the seconds string
+   512 000004D3 B800000000              mov        rax, 0
+   513 000004D8 48BF-                   mov        rdi, seconds
+   513 000004DA [4600000000000000] 
+   514 000004E2 E8(00000000)            call       strlen
+   515 000004E7 4989C4                  mov        r12, rax            ;r12 holds number of bytes in the string instruction
+   516                                  
+   517                                  ;Output the seoncds string
+   518 000004EA B801000000              mov        rax, system_write
+   519 000004EF BF01000000              mov        rdi, Stdout
+   520 000004F4 48BE-                   mov        rsi, seconds
+   520 000004F6 [4600000000000000] 
+   521 000004FE 4C89E2                  mov        rdx, r12            ;Number of bytes to be written.
+   522 00000501 0F05                    syscall
+   523                                  ;////////////////////////////////////////////////////////Tics////////////////////////////////////////////////////
+   524                                  
+   525                                  
+   526                                  
+   527                                  
+   528                                  ;Output a newline
+   529 00000503 C60425[09010000]0A      mov    byte [newline],0xa        ;<==Insurance: assure that newline points to the new line character
+   530 0000050B C60425[0A010000]00      mov    byte [newline+1],Null     ;<==Terminate with the null character.
+   531 00000513 B801000000              mov    rax, system_write
+   532 00000518 BF01000000              mov    rdi, Stdout
+   533 0000051D 48BE-                   mov    rsi, newline       ;<==newline has changed
+   533 0000051F [0901000000000000] 
+   534 00000527 BA01000000              mov    rdx, 1             ;Number of bytes to be written
+   535 0000052C 0F05                    syscall
+   536                                  
+   537                                  
+   538                                  
+   539                                  
+   540                                  ;////////////////////////////////////////////////////////End////////////////////////////////////////////////////
+   541                                  ;Output the final message
+   542                                  ;Obtain the length of the final message
+   543 0000052E B800000000              mov    rax, 0
+   544 00000533 48BF-                   mov    rdi, bye
+   544 00000535 [0B01000000000000] 
+   545 0000053D E8(00000000)            call   strlen
+   546 00000542 4989C4                  mov    r12, rax           ;r12 holds length of the final message
+   547                                  
+   548                                  ;Output the final message
+   549 00000545 B801000000              mov rax, system_write
+   550 0000054A BF01000000              mov rdi, Stdout
+   551 0000054F 48BE-                   mov rsi, bye              ;bye is pointer to the string to be outputted to stdout
+   551 00000551 [0B01000000000000] 
+   552 00000559 4C89E2                  mov rdx, r12
+   553 0000055C 0F05                    syscall
+   554                                  ;////////////////////////////////////////////////////////End////////////////////////////////////////////////////
+   555                                  
+   556                                  
+   557                                  
+   558                                  
+   559                                  ;Output a newline
+   560 0000055E C60425[09010000]0A      mov    byte [newline],0xa        ;<==Insurance: assure that newline points to the new line character
+   561 00000566 C60425[0A010000]00      mov    byte [newline+1],Null     ;<==Terminate with the null character.
+   562 0000056E B801000000              mov    rax, system_write
+   563 00000573 BF01000000              mov    rdi, Stdout
+   564 00000578 48BE-                   mov    rsi, newline       ;<==newline has changed
+   564 0000057A [0901000000000000] 
+   565 00000582 BA01000000              mov    rdx, 1             ;Number of bytes to be written
+   566 00000587 0F05                    syscall
+   567                                  
+   568                                  ;Output a newline
+   569 00000589 C60425[09010000]0A      mov    byte [newline],0xa       ;<==Insurance: assure that newline points to the new line character
+   570 00000591 C60425[0A010000]00      mov    byte [newline+1],Null    ;<==Terminate with the null character.
+   571 00000599 B801000000              mov    rax, system_write
+   572 0000059E BF01000000              mov    rdi, Stdout
+   573 000005A3 48BE-                   mov    rsi, newline       ;<==newline has changed
+   573 000005A5 [0901000000000000] 
+   574 000005AD BA01000000              mov    rdx, 1             ;Number of bytes to be written
+   575 000005B2 0F05                    syscall
+   576                                  
+   577                                  
+   578                                  
+   579                                  
+   580                                  ;Epilogue =====Now exit from this program and return control to the OS =================================================
+   581 000005B4 B83C000000              mov    rax, system_terminate        ;60 is the number of the kernelfunction that terminates an executing program.
+   582 000005B9 BF00000000              mov    rdi, Exit_with_success       ;0 is the error code number for success, that will be returned to the OS.
+   583 000005BE 0F05                    syscall
+   584                                  ;We cannot use an ordinary ret instruction here because this program was not called by some other module.
+   585                                  ;The program does not know where to return to.
+   586                                  
+   587                                  ;===== End of program _start ===========================================================================================
+   588                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2

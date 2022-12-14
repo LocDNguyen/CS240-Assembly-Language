@@ -1,0 +1,237 @@
+     1                                  ; ***************************************************************************************************************************
+     2                                  ; Program name: "Adding Integers Array". This program takes a string input as well as a sequence of integer inputs.         *
+     3                                  ; The program then displays the integer inputs that were put in an array as well as sums all the integers. The program then *
+     4                                  ; returns the string input and exits. Copyright (C) 2022 Loc Nguyen.                                                        *
+     5                                  ;                                                                                                                           *
+     6                                  ; This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License *
+     7                                  ; version 3 as published by the Free Software Foundation.                                                                   *
+     8                                  ; This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied        *
+     9                                  ; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.    *
+    10                                  ; A copy of the GNU General Public License v3 is available here:  <https:;www.gnu.org/licenses/>.                           *
+    11                                  ; ***************************************************************************************************************************
+    12                                  ;
+    13                                  ;
+    14                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    15                                  ;
+    16                                  ; Author information
+    17                                  ;   Author name: Loc Nguyen
+    18                                  ;   Author email: lnguy121@csu.fullerton.edu
+    19                                  ;
+    20                                  ; Program information
+    21                                  ;   Program name: Adding Integers Array
+    22                                  ;   Programming languages: One module in C, two modules in C++, 4 modules in X86, and one module in bash
+    23                                  ;   Date program began: 2022-Sep-28
+    24                                  ;   Date of last update: 2022-Oct-9
+    25                                  ;   Date of reorganization of comments: 2022-Oct-9
+    26                                  ;   Files in this program: driver.c, display_array.cpp, isInteger.cpp, manager.asm, input_array.asm, sum.asm, atol.asm, run.sh
+    27                                  ;   Status: Finished. The program was tested extensively with no errors in Fedora 36.
+    28                                  ;
+    29                                  ; This file
+    30                                  ;    File name: manager.asm
+    31                                  ;    Language: X86 with Intel syntax
+    32                                  ;    Max page width: 133 columns
+    33                                  ;    Assemble: nasm -f elf64 -l manager.lis -o manager.o manager.asm
+    34                                  ;
+    35                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    36                                  
+    37                                  
+    38                                  ;===== Begin code area ============================================================================================================
+    39                                  extern printf
+    40                                  extern scanf
+    41                                  extern fgets
+    42                                  extern stdin
+    43                                  extern strchr
+    44                                  
+    45                                  extern sum
+    46                                  extern inputs
+    47                                  extern Display
+    48                                  
+    49                                  global start
+    50                                  
+    51                                  segment .data
+    52 00000000 506C6561736520656E-     inputprompt db "Please enter your name: ", 0
+    52 00000009 74657220796F757220-
+    52 00000012 6E616D653A2000     
+    53 00000019 0A546869732070726F-     inputprompt2 db 10, "This program will sum your array of integers", 10, 0
+    53 00000022 6772616D2077696C6C-
+    53 0000002B 2073756D20796F7572-
+    53 00000034 206172726179206F66-
+    53 0000003D 20696E746567657273-
+    53 00000046 0A00               
+    54 00000048 456E74657220612073-     inputprompt3 db "Enter a sequence of long integers separated by white space.", 10, 0
+    54 00000051 657175656E6365206F-
+    54 0000005A 66206C6F6E6720696E-
+    54 00000063 746567657273207365-
+    54 0000006C 706172617465642062-
+    54 00000075 792077686974652073-
+    54 0000007E 706163652E0A00     
+    55 00000085 416674657220746865-     inputprompt4 db "After the last input press enter followed by Control+D:", 10, 0
+    55 0000008E 206C61737420696E70-
+    55 00000097 757420707265737320-
+    55 000000A0 656E74657220666F6C-
+    55 000000A9 6C6F77656420627920-
+    55 000000B2 436F6E74726F6C2B44-
+    55 000000BB 3A0A00             
+    56 000000BE 0A5468657365206E75-     received db 10, "These numbers were received and placed into the array: ", 10, 0
+    56 000000C7 6D6265727320776572-
+    56 000000D0 652072656365697665-
+    56 000000D9 6420616E6420706C61-
+    56 000000E2 63656420696E746F20-
+    56 000000EB 746865206172726179-
+    56 000000F4 3A200A00           
+    57 000000F8 0A0A5468652073756D-     amount db 10, 10, "The sum of the %ld numbers in this array is ", 0
+    57 00000101 206F66207468652025-
+    57 0000010A 6C64206E756D626572-
+    57 00000113 7320696E2074686973-
+    57 0000011C 206172726179206973-
+    57 00000125 2000               
+    58 00000127 256C642E0A00            total db "%ld.", 10, 0
+    59 0000012D 0A546869732070726F-     end db 10, "This program will return execution to the main function.", 10, 10, 0
+    59 00000136 6772616D2077696C6C-
+    59 0000013F 2072657475726E2065-
+    59 00000148 7865637574696F6E20-
+    59 00000151 746F20746865206D61-
+    59 0000015A 696E2066756E637469-
+    59 00000163 6F6E2E0A0A00       
+    60 00000169 0A416E20696E76616C-     errormessage db 10, "An invalid input was detected.", 10, 0
+    60 00000172 696420696E70757420-
+    60 0000017B 776173206465746563-
+    60 00000184 7465642E0A00       
+    61 0000018A 257300                  one_string_format db "%s", 0
+    62 0000018D 256C6620256C6600        two_float_format db "%lf %lf", 0
+    63                                  
+    64                                  segment .bss  ;Reserved for uninitialized data
+    65 00000000 <res 20h>               name resb 32
+    66 00000020 <res 20h>               array resb 32
+    67                                  
+    68                                  segment .text ;Reserved for executing instructions.
+    69                                  
+    70                                  start:
+    71                                  
+    72                                  ;Prolog ===== Insurance for any caller of this assembly module ====================================================================
+    73                                  ;Any future program calling this module that the data in the caller's GPRs will not be modified.
+    74 00000000 55                      push rbp
+    75 00000001 4889E5                  mov  rbp,rsp
+    76 00000004 57                      push rdi                                                    ;Backup rdi
+    77 00000005 56                      push rsi                                                    ;Backup rsi
+    78 00000006 52                      push rdx                                                    ;Backup rdx
+    79 00000007 51                      push rcx                                                    ;Backup rcx
+    80 00000008 4150                    push r8                                                     ;Backup r8
+    81 0000000A 4151                    push r9                                                     ;Backup r9
+    82 0000000C 4152                    push r10                                                    ;Backup r10
+    83 0000000E 4153                    push r11                                                    ;Backup r11
+    84 00000010 4154                    push r12                                                    ;Backup r12
+    85 00000012 4155                    push r13                                                    ;Backup r13
+    86 00000014 4156                    push r14                                                    ;Backup r14
+    87 00000016 4157                    push r15                                                    ;Backup r15
+    88 00000018 53                      push rbx                                                    ;Backup rbx
+    89 00000019 9C                      pushf                                                       ;Backup rflags
+    90                                  
+    91                                  ;Prompt user
+    92 0000001A B800000000              mov rax, 0
+    93 0000001F 48BF-                   mov rdi, inputprompt                         ;"Please enter your name: '
+    93 00000021 [0000000000000000] 
+    94 00000029 E8(00000000)            call printf
+    95                                  
+    96                                  ;Taking name input
+    97 0000002E B800000000              mov rax, 0
+    98 00000033 48BF-                   mov rdi, name                               ;"%s"
+    98 00000035 [0000000000000000] 
+    99 0000003D BE20000000              mov rsi, 32
+   100 00000042 488B1425[00000000]      mov rdx, [stdin]
+   101 0000004A E8(00000000)            call fgets
+   102                                  
+   103 0000004F B800000000              mov rax, 0
+   104 00000054 48BF-                   mov rdi, name
+   104 00000056 [0000000000000000] 
+   105 0000005E BE0A000000              mov rsi, 10
+   106 00000063 E8(00000000)            call strchr
+   107 00000068 C60000                  mov byte [rax], 0
+   108                                  
+   109 0000006B B800000000              mov rax, 0
+   110 00000070 48BF-                   mov rdi, inputprompt2                         ;"This program will sum your array of integers"
+   110 00000072 [1900000000000000] 
+   111 0000007A E8(00000000)            call printf
+   112                                  
+   113 0000007F B800000000              mov rax, 0
+   114 00000084 48BF-                   mov rdi, inputprompt3                         ;"Enter a sequence of long integers separated by white space."
+   114 00000086 [4800000000000000] 
+   115 0000008E E8(00000000)            call printf
+   116                                  
+   117 00000093 B800000000              mov rax, 0
+   118 00000098 48BF-                   mov rdi, inputprompt4                         ;"After the last input press enter followed by Control+D:"
+   118 0000009A [8500000000000000] 
+   119 000000A2 E8(00000000)            call printf
+   120                                  
+   121                                  ;Taking string inputs
+   122 000000A7 B800000000              mov rax, 0
+   123 000000AC 48BF-                   mov rdi, array
+   123 000000AE [2000000000000000] 
+   124 000000B6 BE06000000              mov rsi, 6
+   125 000000BB E8(00000000)            call inputs
+   126 000000C0 4989C4                  mov r12, rax
+   127                                  
+   128                                  ;Adding inputs
+   129 000000C3 B800000000              mov rax, 0
+   130 000000C8 48BF-                   mov rdi, array
+   130 000000CA [2000000000000000] 
+   131 000000D2 4C89E6                  mov rsi, r12
+   132 000000D5 E8(00000000)            call sum
+   133 000000DA 4989C3                  mov r11, rax
+   134 000000DD 4D89DD                  mov r13, r11
+   135                                  
+   136                                  ;Print array
+   137 000000E0 B800000000              mov rax, 0
+   138 000000E5 48BF-                   mov rdi, received
+   138 000000E7 [BE00000000000000] 
+   139 000000EF E8(00000000)            call printf
+   140                                  
+   141                                  ;Print elements in the array
+   142 000000F4 B800000000              mov rax, 0
+   143 000000F9 48BF-                   mov rdi, array
+   143 000000FB [2000000000000000] 
+   144 00000103 4C89E6                  mov rsi, r12
+   145 00000106 E8(00000000)            call Display
+   146                                  
+   147                                  ;Print total number of inputs and sum
+   148 0000010B B800000000              mov rax, 0
+   149 00000110 48BF-                   mov rdi, amount
+   149 00000112 [F800000000000000] 
+   150 0000011A 4C89E6                  mov rsi, r12
+   151 0000011D E8(00000000)            call printf
+   152                                  
+   153 00000122 B800000000              mov rax, 0
+   154 00000127 48BF-                   mov rdi, total
+   154 00000129 [2701000000000000] 
+   155 00000131 4C89EE                  mov rsi, r13
+   156 00000134 E8(00000000)            call printf
+   157                                  
+   158                                  ;Finish execution
+   159 00000139 B800000000              mov rax, 0
+   160 0000013E 48BF-                   mov rdi, end
+   160 00000140 [2D01000000000000] 
+   161 00000148 E8(00000000)            call printf
+   162                                  
+   163 0000014D 48B8-                   mov rax, name
+   163 0000014F [0000000000000000] 
+   164                                  ;===== Restore original values to integer registers ===============================================================================
+   165                                  restore:
+   166 00000157 9D                      popf                                                        ;Restore rflags
+   167 00000158 5B                      pop rbx                                                     ;Restore rbx
+   168 00000159 415F                    pop r15                                                     ;Restore r15
+   169 0000015B 415E                    pop r14                                                     ;Restore r14
+   170 0000015D 415D                    pop r13                                                     ;Restore r13
+   171 0000015F 415C                    pop r12                                                     ;Restore r12
+   172 00000161 415B                    pop r11                                                     ;Restore r11
+   173 00000163 415A                    pop r10                                                     ;Restore r10
+   174 00000165 4159                    pop r9                                                      ;Restore r9
+   175 00000167 4158                    pop r8                                                      ;Restore r8
+   176 00000169 59                      pop rcx                                                     ;Restore rcx
+   177 0000016A 5A                      pop rdx                                                     ;Restore rdx
+   178 0000016B 5E                      pop rsi                                                     ;Restore rsi
+   179 0000016C 5F                      pop rdi                                                     ;Restore rdi
+   180 0000016D 5D                      pop rbp                                                     ;Restore rbp
+   181                                  
+   182 0000016E C3                      ret
+   183                                  
+   184                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

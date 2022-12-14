@@ -1,0 +1,183 @@
+     1                                  ;************************************************************************************************************************
+     2                                  ;Program name: "atofloat".  This program accepts an array of char and converts that array to its corresponding integer  *
+     3                                  ;value.  This is a library function not specific to any one program.  Copyright (C) 2022 Loc Nguyen                     *
+     4                                  ;                                                                                                                       *
+     5                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public      *
+     6                                  ;License version 3 as published by the Free Software Foundation.  This program is distributed in the hope that it will  *
+     7                                  ;be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR  *
+     8                                  ;PURPOSE.  See the GNU General Public License for more details.  A copy of the GNU General Public License v3 is         *
+     9                                  ;available here:  <https://www.gnu.org/licenses/>.                                                                      *
+    10                                  ;************************************************************************************************************************
+    11                                  ;
+    12                                  ;Author information
+    13                                  ;   Author name: Loc Nguyen
+    14                                  ;   Author's email: lnguy121@csu.fullerton.edu
+    15                                  ;
+    16                                  ;Function information
+    17                                  ;   Function name: atofloat
+    18                                  ;   Programming language: X86
+    19                                  ;   Language syntax: Intel
+    20                                  ;   Function prototype:  long double atofloat (char * number_string);
+    21                                  ;   Reference: None
+    22                                  ;   Input parameter: The char array passed to this function must contain valid integral data.
+    23                                  ;   Output parameter: A float that is faithfully represented by the incoming parameter.
+    24                                  ;
+    25                                  ;Assemble: nasm -f elf64 -o atof.o -l atof.lis atof.asm
+    26                                  ;
+    27                                  ;Date development began: 2018-Oct-27
+    28                                  ;Date comments restructured: 2022-Oct-29
+    29                                  ;
+    30                                  ;===== Begin executable code section ====================================================================================
+    31                                  
+    32                                  ;Assembler directives
+    33                                  base_number equ 10                      ;10 base of the decimal number system
+    34                                  ascii_zero equ 48                       ;48 is the ascii value of '0'
+    35                                  null equ 0
+    36                                  minus equ '-'
+    37                                  decimal equ '.'
+    38                                  
+    39                                  ;Global declaration for linking files.
+    40                                  global atof                          ;This makes atolong callable by functions outside of this file.
+    41                                  
+    42                                  segment .data                           ;Place initialized data here
+    43                                     ;This segment is empty
+    44                                  
+    45                                  segment .bss                            ;Declare pointers to un-initialized space in this segment.
+    46                                     ;This segment is empty
+    47                                  
+    48                                  ;==============================================================================================================================
+    49                                  ;===== Begin the executable code here.
+    50                                  ;==============================================================================================================================
+    51                                  segment .text                           ;Place executable instructions in this segment.
+    52                                  
+    53                                  atof:                                ;Entry point.  Execution begins here.
+    54                                  
+    55                                  ;The next two instructions should be performed at the start of every assembly program.
+    56 00000000 55                      push rbp                                ;This marks the start of a new stack frame belonging to this execution of this function.
+    57 00000001 4889E5                  mov  rbp, rsp                           ;rbp holds the address of the start of this new stack frame.
+    58                                  ;The following pushes are performed for safety of the data that may already be in the remaining GPRs.
+    59                                  ;This backup process is especially important when this module is called by another asm module.  It is less important when called
+    60                                  ;called from a C or C++ function.
+    61 00000004 53                      push rbx
+    62 00000005 51                      push rcx
+    63 00000006 52                      push rdx
+    64 00000007 57                      push rdi
+    65 00000008 56                      push rsi
+    66 00000009 4150                    push r8
+    67 0000000B 4151                    push r9
+    68 0000000D 4152                    push r10
+    69 0000000F 4153                    push r11
+    70 00000011 4154                    push r12
+    71 00000013 4155                    push r13
+    72 00000015 4156                    push r14
+    73 00000017 4157                    push r15
+    74 00000019 9C                      pushf
+    75                                  
+    76                                  ;Designate the purpose of selected registers: r8, r9, r10
+    77 0000001A 4989F8                  mov r8, rdi                   ;Copy the pointer to char data to r8
+    78 0000001D 41B900000000            mov r9, 0                     ;r9 = array index
+    79 00000023 41BA00000000            mov r10, 0                    ;r10 = long integer; final answer will be here.
+    80 00000029 66450F57FF              xorpd xmm15, xmm15
+    81 0000002E 41BC00000000            mov r12, 0                    ;check how many numbers after decimal counter
+    82                                  
+    83                                  ;The first byte in the array may be '+' or '-', which are valid numeric characters.
+    84                                  ;We need to check for the presence of a leading sign.
+    85 00000034 4180382B                cmp byte [r8+1*0], '+'        ;Check for leading plus sign
+    86 00000038 7508                    jne next_comparison
+    87 0000003A 41B901000000            mov r9, 1
+    88 00000040 EB0C                    jmp begin_loop
+    89                                  
+    90                                  next_comparison:
+    91 00000042 4180382D                cmp byte [r8+1*0], '-'        ;Check for leading minus sign
+    92 00000046 7506                    jne begin_loop
+    93 00000048 41B901000000            mov r9, 1
+    94                                  
+    95                                  
+    96                                  begin_loop:
+    97 0000004E 43803C082E              cmp byte [r8+1*r9], decimal   ;check for decimal point
+    98 00000053 7420                    je has_decimal
+    99 00000055 B80A000000              mov rax, base_number
+   100 0000005A 49F7E2                  mul r10
+   101 0000005D 4989C2                  mov r10, rax
+   102                                  
+   103                                  ;This is the instuction we want to perform: "add r10, byte [r8+1*r9]".  But the problem is that the
+   104                                  ;sizes of operands do not match.  You cannot add a 1-byte number to an 8-byte number.  However, the
+   105                                  ;problem can be fixed by using the extension instructions documented on page 77 of the Jorgensen textbook.
+   106 00000060 438A0408                mov al, byte [r8+1*r9]        ;The 1-byte number has been copied to al (1-byte register)
+   107 00000064 6698                    cbw                           ;The 1-byte number in al has been extended to 2-byte number in ax
+   108 00000066 98                      cwde                          ;The 2-byte number in ax has been extended to 4-byte number in eax
+   109 00000067 4898                    cdqe                          ;The 4-byte number in eax has been extended to 8-byte number in rax
+   110                                  
+   111                                  ;Now addition is possible
+   112 00000069 4901C2                  add r10, rax                  ;To students in 240 class: wasn't that simply great fun?
+   113 0000006C 4983EA30                sub r10, ascii_zero           ;A declared constant is compatible with various sizes of registers; explained in Jorgensen.
+   114 00000070 49FFC1                  inc r9
+   115 00000073 EBD9                    jmp begin_loop
+   116                                  
+   117                                  has_decimal:
+   118 00000075 49FFC1                  inc r9
+   119                                  
+   120                                  over_decimal:
+   121 00000078 43803C0800              cmp byte [r8+1*r9], null      ;Check the termination condition of the loop
+   122 0000007D 7423                    je loop_finished
+   123 0000007F B80A000000              mov rax, base_number
+   124 00000084 49F7E2                  mul r10
+   125 00000087 4989C2                  mov r10, rax
+   126                                  
+   127                                  ;This is the instuction we want to perform: "add r10, byte [r8+1*r9]".  But the problem is that the
+   128                                  ;sizes of operands do not match.  You cannot add a 1-byte number to an 8-byte number.  However, the
+   129                                  ;problem can be fixed by using the extension instructions documented on page 77 of the Jorgensen textbook.
+   130 0000008A 438A0408                mov al, byte [r8+1*r9]        ;The 1-byte number has been copied to al (1-byte register)
+   131 0000008E 6698                    cbw                           ;The 1-byte number in al has been extended to 2-byte number in ax
+   132 00000090 98                      cwde                          ;The 2-byte number in ax has been extended to 4-byte number in eax
+   133 00000091 4898                    cdqe                          ;The 4-byte number in eax has been extended to 8-byte number in rax
+   134                                  
+   135                                  ;Now addition is possible
+   136 00000093 4901C2                  add r10, rax                  ;To students in 240 class: wasn't that simply great fun?
+   137 00000096 4983EA30                sub r10, ascii_zero           ;A declared constant is compatible with various sizes of registers; explained in Jorgensen.
+   138 0000009A 49FFC1                  inc r9
+   139 0000009D 49FFC4                  inc r12
+   140 000000A0 EBD6                    jmp over_decimal
+   141                                  
+   142                                  loop_finished:
+   143 000000A2 F24D0F2AFA              cvtsi2sd xmm15, r10
+   144 000000A7 B80A000000              mov rax, 10
+   145 000000AC F24C0F2AF0              cvtsi2sd xmm14, rax
+   146                                  
+   147 000000B1 41BA00000000            mov r10, 0
+   148                                  moving_decimal:
+   149 000000B7 4D39E2                  cmp r10, r12
+   150 000000BA 740A                    je check_negative
+   151 000000BC F2450F5EFE              divsd xmm15, xmm14
+   152 000000C1 49FFC2                  inc r10
+   153 000000C4 EBF1                    jmp moving_decimal
+   154                                  
+   155                                  ;Set the computed value to negative if needed
+   156                                  check_negative:
+   157 000000C6 4180382D                cmp byte [r8+1*0], minus      ;Check for leading minus sign
+   158 000000CA 7503                    jne positive
+   159 000000CC 49F7DA                  neg r10
+   160                                  
+   161                                  positive:
+   162 000000CF 4C89D0                  mov rax, r10
+   163 000000D2 F2410F10C7              movsd xmm0, xmm15
+   164                                  ;==================================================================================================================================
+   165                                  ;Epilogue: restore data to the values held before this function was called.
+   166 000000D7 9D                      popf
+   167 000000D8 415F                    pop r15
+   168 000000DA 415E                    pop r14
+   169 000000DC 415D                    pop r13
+   170 000000DE 415C                    pop r12
+   171 000000E0 415B                    pop r11
+   172 000000E2 415A                    pop r10
+   173 000000E4 4159                    pop r9
+   174 000000E6 4158                    pop r8
+   175 000000E8 5E                      pop rsi
+   176 000000E9 5F                      pop rdi
+   177 000000EA 5A                      pop rdx
+   178 000000EB 59                      pop rcx
+   179 000000EC 5B                      pop rbx
+   180 000000ED 5D                      pop rbp                       ;Now the system stack is in the same state it was when this function began execution.
+   181 000000EE C3                      ret                           ;Pop a qword from the stack into rip, and continue executing..
+   182                                  ;========== End of module atol.asm ================================================================================================
+   183                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

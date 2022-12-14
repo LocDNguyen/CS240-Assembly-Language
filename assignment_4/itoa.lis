@@ -1,0 +1,144 @@
+     1                                  ;************************************************************************************************************************
+     2                                  ;Program name: "itoa".  This program accepts a long integer and converts it to the corresponding string representation. *
+     3                                  ;This is a library function not specific to any one program.  Copyright (C) 2018  Floyd Holliday                        *
+     4                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public      *
+     5                                  ;License version 3 as published by the Free Software Foundation.  This program is distributed in the hope that it will  *
+     6                                  ;be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR  *
+     7                                  ;PURPOSE.  See the GNU General Public License for more details.  A copy of the GNU General Public License v3 is         *
+     8                                  ;available here:  <https://www.gnu.org/licenses/>.                                                                      *
+     9                                  ;************************************************************************************************************************
+    10                                  
+    11                                  ;Author information
+    12                                  ;   Author name: Floyd Holliday
+    13                                  ;   Author's email: holliday@fullerton.edu
+    14                                  
+    15                                  ;Function information
+    16                                  ;   Function name: itoa
+    17                                  ;   Programming language: X86
+    18                                  ;   Language syntax: Intel
+    19                                  ;   Function prototype:  char * itoa (long int x, char * numstring);
+    20                                  ;   Reference: This function was adapted from Jorgensen, pages 154-156.
+    21                                  ;   Input parameters: 1st: The integer that will be converted to string
+    22                                  ;                     2nd: A pointer to memory where the converted integer will be written as string
+    23                                  ;   Output parameter: Same value as the incoming second parameter.
+    24                                  
+    25                                  ;Future upgrade: Add a third incoming parameter which is the length of the destination string.  Such a
+    26                                  ;parameter will allow this function to write no more chars than the true length of the destination.
+    27                                  
+    28                                  ;Assemble: nasm -f elf64 -o itoa.o -l itoa.lis itoa.asm
+    29                                  
+    30                                  ;Date development began: 2018-March-01
+    31                                  ;Date comments restructured: 2022-July-15
+    32                                  
+    33                                  ;===== Begin executable code section ====================================================================================
+    34                                  
+    35                                  ;Declarations
+    36                                  global itoa
+    37                                  Null equ 0
+    38                                  true equ -1
+    39                                  false equ 0
+    40                                  
+    41                                  segment .data
+    42                                  ;Empty
+    43                                  
+    44                                  segment .bss
+    45                                  ;Empty
+    46                                  
+    47                                  segment .text
+    48                                  
+    49                                  itoa:
+    50                                  
+    51                                  ;Back up the GPRs
+    52 00000000 55                      push       rbp                          ;Save a copy of the stack base pointer
+    53 00000001 4889E5                  mov        rbp, rsp                     ;We do this in order to be fully compatible with C and C++.
+    54 00000004 53                      push       rbx                          ;Back up rbx
+    55 00000005 51                      push       rcx                          ;Back up rcx
+    56 00000006 52                      push       rdx                          ;Back up rdx
+    57 00000007 56                      push       rsi                          ;Back up rsi
+    58 00000008 57                      push       rdi                          ;Back up rdi
+    59 00000009 4150                    push       r8                           ;Back up r8
+    60 0000000B 4151                    push       r9                           ;Back up r9
+    61 0000000D 4152                    push       r10                          ;Back up r10
+    62 0000000F 4153                    push       r11                          ;Back up r11
+    63 00000011 4154                    push       r12                          ;Back up r12
+    64 00000013 4155                    push       r13                          ;Back up r13
+    65 00000015 4156                    push       r14                          ;Back up r14
+    66 00000017 4157                    push       r15                          ;Back up r15
+    67 00000019 9C                      pushf                                   ;Back up rflags
+    68                                  
+    69                                  
+    70                                  ;Passed parameters:
+    71                                  ;  rdi = 64-bit integer to be converted to string
+    72                                  ;  rsi = starting address of the string that will received the converted integer.
+    73                                  
+    74                                  ;Initialize parameters for iteration
+    75 0000001A 4889F8                  mov rax,rdi    ;rax hold the 64-bit integer to be converted to string.
+    76 0000001D B900000000              mov rcx,0      ;rcx = counter of decimal digits
+    77 00000022 41BA0A000000            mov r10,10     ;Decimal 10 must be in a register for the division instruction
+    78                                  
+    79                                  ;Special case: if the user inputs an integer numerically less than the smallest 64-bit signed integer
+    80                                  ;then it will be upgraded to the smallest 64-bit integer.  The next block checks for this rather
+    81                                  ;rare case and refuses to process it as an integer, and simply processes a zero.
+    82                                  
+    83 00000028 49BE00000000000000-     mov r14,0x8000000000000000
+    83 00000031 80                 
+    84 00000032 4C39F0                  cmp rax,r14
+    85 00000035 7F05                        jg continue
+    86 00000037 B800000000                  mov rax,0
+    87                                  
+    88                                  continue:
+    89 0000003C 4883F800                cmp rax,0
+    90 00000040 7D0A                    jge main_loop
+    91 00000042 49C7C7FFFFFFFF              mov r15,true
+    92 00000049 48F7D8                      neg rax                   ;Replace rax with its absolute value
+    93                                  
+    94                                  main_loop:
+    95 0000004C 4899                        cqo
+    96 0000004E 49F7F2                      div r10                   ;rdx:rax/r10
+    97 00000051 52                          push rdx                  ;Put remainder on stack. The quotient is in rax
+    98 00000052 48FFC1                      inc rcx                   ;Count one push onto stack
+    99 00000055 4883F800                    cmp rax,0                 ;Is quotient equal to zero?
+   100 00000059 75F1                    jne main_loop                 ;Continue iteration if the quotient is not zero
+   101                                  
+   102                                  ;Initialize parameters for iteration that copies chars from stack to string
+   103                                      ;rsi is the destination array
+   104                                      ;rcx is the number of chars that will be placed into rsi
+   105 0000005B BF00000000                  mov rdi, 0                ;rdi will be the index of the array rsi
+   106                                  
+   107                                  ;If the original number was negative then place '-' in position 0 of the array.
+   108                                      ; cmp r15,0
+   109                                      ; je begin_copy             ;if original number was positive skip to begin_copy
+   110                                      ; mov byte [rsi+rdi],'-'
+   111                                      ; inc rdi
+   112                                  
+   113                                  begin_copy:
+   114 00000060 58                          pop rax
+   115 00000061 0430                        add al, "0"               ;Add to the numeric value in rax the ascii value of zero
+   116 00000063 88043E                      mov byte [rsi+rdi], al    ;Copy the ascii value of the digit to the array
+   117 00000066 48FFC7                      inc rdi
+   118 00000069 E2F5                    loop begin_copy               ;loop instruction performs: {dec rcx followed by if(rcx>0) then goto begin_copy}
+   119                                  
+   120                                  
+   121 0000006B C6043E00                mov byte [rsi+rdi],Null       ;Append null to the end of the string.
+   122                                  
+   123 0000006F 4889F0                  mov rax, rsi          ;Place the array into the return register
+   124                                  
+   125                                  ;Restore the GPRs to their original values
+   126 00000072 9D                      popf                                    ;Restore rflags
+   127 00000073 415F                    pop        r15                          ;Restore r15
+   128 00000075 415E                    pop        r14                          ;Restore r14
+   129 00000077 415D                    pop        r13                          ;Restore r13
+   130 00000079 415C                    pop        r12                          ;Restore r12
+   131 0000007B 415B                    pop        r11                          ;Restore r11
+   132 0000007D 415A                    pop        r10                          ;Restore r10
+   133 0000007F 4159                    pop        r9                           ;Restore r9
+   134 00000081 4158                    pop        r8                           ;Restore r8
+   135 00000083 5F                      pop        rdi                          ;Restore rdi
+   136 00000084 5E                      pop        rsi                          ;Restore rsi
+   137 00000085 5A                      pop        rdx                          ;Restore rdx
+   138 00000086 59                      pop        rcx                          ;Restore rcx
+   139 00000087 5B                      pop        rbx                          ;Restore rbx
+   140 00000088 5D                      pop        rbp                          ;Restore rbp
+   141                                  ;Notice that rax is not restored because it holds the value to be returned to the caller.
+   142                                  
+   143 00000089 C3                      ret

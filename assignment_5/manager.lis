@@ -1,0 +1,277 @@
+     1                                  ; ***************************************************************************************************************************
+     2                                  ; Program name: "Sort Arrays". This program takes the input of an integer number and uses that as a basis for how many      *
+     3                                  ; random float numbers should be created and passed in an array to be sorted.                                               *
+     4                                  ; Copyright (C) 2022 Loc Nguyen.                                                                                            *
+     5                                  ;                                                                                                                           *
+     6                                  ; This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License *
+     7                                  ; version 3 as published by the Free Software Foundation.                                                                   *
+     8                                  ; This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied        *
+     9                                  ; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.    *
+    10                                  ; A copy of the GNU General Public License v3 is available here:  <https:;www.gnu.org/licenses/>.                           *
+    11                                  ; ***************************************************************************************************************************
+    12                                  ;
+    13                                  ;
+    14                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    15                                  ;
+    16                                  ; Author information
+    17                                  ;   Author name: Loc Nguyen
+    18                                  ;   Author email: lnguy121@csu.fullerton.edu
+    19                                  ;
+    20                                  ; Program information
+    21                                  ;   Program name: Sort Arrays
+    22                                  ;   Programming languages: Three modules in C++, one module in C, Three modules in x86, One module in bash
+    23                                  ;   Date program began: 2022-Nov-30
+    24                                  ;   Date of last update: 2022-Dec-12
+    25                                  ;   Date of reorganization of comments: 2022-Dec-12
+    26                                  ;   Files in this program: display_array.cpp, driver.cpp, fillarray.asm, getClock.cpp, getFrequency.asm, manager.asm, sort.c, run,sh
+    27                                  ;   Status: Finished. The program was tested extensively with no errors in Fedora 36.
+    28                                  ;
+    29                                  ; This file
+    30                                  ;    File name: manager.cpp
+    31                                  ;    Language: x86
+    32                                  ;    Max page width: 134 columns
+    33                                  ;    Assemble: g++ -c -m64 -Wall -o driver.o driver.cpp -fno-pie -no-pie -std=c++17
+    34                                  ;
+    35                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    36                                  
+    37                                  
+    38                                  
+    39                                  
+    40                                  ; //===== Begin code area ===========================================================================================================
+    41                                  extern printf
+    42                                  extern scanf
+    43                                  extern fillarray
+    44                                  extern printArray
+    45                                  extern fsort
+    46                                  extern getfreq
+    47                                  
+    48                                  global manager
+    49                                  
+    50                                  TITLE_LEN equ 50
+    51                                  
+    52                                  segment .data
+    53                                  
+    54 00000000 506C6561736520696E-     prompt db "Please input the count of number of data items to be placed into the array with (maximum 10 million): ", 0
+    54 00000009 707574207468652063-
+    54 00000012 6F756E74206F66206E-
+    54 0000001B 756D626572206F6620-
+    54 00000024 64617461206974656D-
+    54 0000002D 7320746F2062652070-
+    54 00000036 6C6163656420696E74-
+    54 0000003F 6F2074686520617272-
+    54 00000048 617920776974682028-
+    54 00000051 6D6178696D756D2031-
+    54 0000005A 30206D696C6C696F6E-
+    54 00000063 293A2000           
+    55                                  
+    56 00000067 256C6400                intformat db "%ld", 0
+    57                                  
+    58 0000006B 5468652074696D6520-     beginningtic db "The time is now %lu tics.  Sorting will begin.", 10, 0
+    58 00000074 6973206E6F7720256C-
+    58 0000007D 7520746963732E2020-
+    58 00000086 536F7274696E672077-
+    58 0000008F 696C6C20626567696E-
+    58 00000098 2E0A00             
+    59                                  
+    60 0000009B 5468652074696D6520-     endingtic db "The time is now %lu tics.  Sorting has finished.", 10, 0
+    60 000000A4 6973206E6F7720256C-
+    60 000000AD 7520746963732E2020-
+    60 000000B6 536F7274696E672068-
+    60 000000BF 61732066696E697368-
+    60 000000C8 65642E0A00         
+    61                                  
+    62 000000CD 546F74616C20736F72-     sortTime db "Total sort time is %lu tics which equals %.9lf seconds.", 10, 0
+    62 000000D6 742074696D65206973-
+    62 000000DF 20256C752074696373-
+    62 000000E8 207768696368206571-
+    62 000000F1 75616C7320252E396C-
+    62 000000FA 66207365636F6E6473-
+    62 00000103 2E0A00             
+    63                                  
+    64                                  segment .bss
+    65                                  
+    66 00000000 <res 4C4B400h>          myArray resq 10000000
+    67                                  ;arrayinput resq 50
+    68                                  
+    69                                  segment .text
+    70                                  
+    71                                  manager:
+    72                                  
+    73 00000000 55                      push rbp                                          ;Backup rbp
+    74 00000001 4889E5                  mov  rbp,rsp                                      ;The base pointer now points to top of stack
+    75 00000004 57                      push rdi                                          ;Backup rdi
+    76 00000005 56                      push rsi                                          ;Backup rsi
+    77 00000006 52                      push rdx                                          ;Backup rdx
+    78 00000007 51                      push rcx                                          ;Backup rcx
+    79 00000008 4150                    push r8                                           ;Backup r8
+    80 0000000A 4151                    push r9                                           ;Backup r9
+    81 0000000C 4152                    push r10                                          ;Backup r10
+    82 0000000E 4153                    push r11                                          ;Backup r11
+    83 00000010 4154                    push r12                                          ;Backup r12
+    84 00000012 4155                    push r13                                          ;Backup r13
+    85 00000014 4156                    push r14                                          ;Backup r14
+    86 00000016 4157                    push r15                                          ;Backup r15
+    87 00000018 53                      push rbx                                          ;Backup rbx
+    88 00000019 9C                      pushf                                             ;Backup rflags
+    89                                  
+    90                                  
+    91                                  
+    92                                  ;print prompt
+    93 0000001A B800000000              mov rax, 0
+    94 0000001F 48BF-                   mov rdi, prompt
+    94 00000021 [0000000000000000] 
+    95 00000029 E8(00000000)            call printf
+    96                                  
+    97                                  
+    98                                  
+    99                                  ;take number input from user
+   100 0000002E 4881EC00040000          sub rsp, 1024
+   101 00000035 B800000000              mov rax, 0
+   102 0000003A 48BF-                   mov rdi, intformat
+   102 0000003C [6700000000000000] 
+   103 00000044 4889E6                  mov rsi, rsp
+   104 00000047 E8(00000000)            call scanf
+   105 0000004C 4C8B3C24                mov r15, [rsp]
+   106 00000050 4881C400040000          add rsp, 1024
+   107                                  
+   108                                  ;fill array with inputted number
+   109 00000057 B800000000              mov rax, 0
+   110 0000005C 48BF-                   mov rdi, myArray
+   110 0000005E [0000000000000000] 
+   111 00000066 4C89FE                  mov rsi, r15
+   112 00000069 E8(00000000)            call fillarray
+   113 0000006E 4989C5                  mov r13, rax
+   114                                  
+   115                                  ;print the array
+   116 00000071 B800000000              mov rax, 0
+   117 00000076 48BF-                   mov rdi, myArray
+   117 00000078 [0000000000000000] 
+   118 00000080 4C89EE                  mov rsi, r13
+   119 00000083 E8(00000000)            call printArray
+   120                                  
+   121                                  
+   122                                  
+   123                                  
+   124                                  
+   125                                  ;get beginning tic
+   126 00000088 0FA2                    cpuid
+   127 0000008A 0F31                    rdtsc
+   128 0000008C 48C1E220                shl rdx, 32
+   129 00000090 4801C2                  add rdx, rax
+   130 00000093 4989D4                  mov r12, rdx            ;r12 stores beginning tic
+   131                                  
+   132                                  ;print beginningtic
+   133 00000096 B800000000              mov rax, 0
+   134 0000009B 48BF-                   mov rdi, beginningtic
+   134 0000009D [6B00000000000000] 
+   135 000000A5 4C89E6                  mov rsi, r12
+   136 000000A8 E8(00000000)            call printf
+   137                                  
+   138                                  
+   139                                  
+   140                                  
+   141                                  
+   142                                  ;sort array
+   143 000000AD B800000000              mov rax, 0
+   144 000000B2 48BF-                   mov rdi, myArray
+   144 000000B4 [0000000000000000] 
+   145 000000BC 4C89EE                  mov rsi, r13
+   146 000000BF E8(00000000)            call fsort
+   147                                  
+   148                                  
+   149                                  
+   150                                  
+   151                                  ;get ending tic
+   152 000000C4 0FA2                    cpuid
+   153 000000C6 0F31                    rdtsc
+   154 000000C8 48C1E220                shl rdx, 32
+   155 000000CC 4801C2                  add rdx, rax
+   156 000000CF 4989D3                  mov r11, rdx
+   157                                  
+   158                                  ;print endingtic
+   159 000000D2 B800000000              mov rax, 0
+   160 000000D7 48BF-                   mov rdi, endingtic
+   160 000000D9 [9B00000000000000] 
+   161 000000E1 4C89DE                  mov rsi, r11
+   162 000000E4 E8(00000000)            call printf
+   163                                  
+   164                                  
+   165                                  
+   166                                  
+   167                                  
+   168                                  ;calculate speed benchmark
+   169 000000E9 4D89E2                  mov r10, r12
+   170 000000EC 4D29DA                  sub r10, r11
+   171                                  
+   172 000000EF B800000000              mov rax, 0
+   173 000000F4 E8(00000000)            call getfreq
+   174 000000F9 F2440F10F8              movsd xmm15, xmm0
+   175                                  
+   176 000000FE F24D0F2AF4              cvtsi2sd xmm14, r12
+   177 00000103 F24D0F2AEB              cvtsi2sd xmm13, r11
+   178                                  
+   179 00000108 F2450F5CF5              subsd xmm14, xmm13
+   180                                  
+   181 0000010D F2450F10E6              movsd xmm12, xmm14
+   182                                  
+   183 00000112 F2450F5EE7              divsd xmm12, xmm15
+   184                                  
+   185                                  ; Get value of 1 billion and store it in xmm11.
+   186                                  ; mov rax, 0x41cdcd6500000000
+   187                                  ; push rax
+   188                                  ; movsd xmm11, [rsp]
+   189                                  ; pop rax
+   190 00000117 49B90080C6A47E8D03-     mov r9, 1000000000000000
+   190 00000120 00                 
+   191 00000121 F24D0F2AD9              cvtsi2sd xmm11, r9
+   192                                  
+   193 00000126 F2450F5EE3              divsd xmm12, xmm11
+   194                                  
+   195                                  
+   196                                  
+   197                                  
+   198                                  ;print sortTime
+   199 0000012B B801000000              mov rax, 1
+   200 00000130 48BF-                   mov rdi, sortTime
+   200 00000132 [CD00000000000000] 
+   201 0000013A 4C89D6                  mov rsi, r10
+   202 0000013D F2410F10C4              movsd xmm0, xmm12
+   203 00000142 E8(00000000)            call printf
+   204                                  
+   205                                  
+   206                                  
+   207                                  
+   208                                  
+   209                                  ;call printArray
+   210 00000147 B800000000              mov rax, 0
+   211 0000014C 48BF-                   mov rdi, myArray
+   211 0000014E [0000000000000000] 
+   212 00000156 4C89EE                  mov rsi, r13
+   213 00000159 E8(00000000)            call printArray
+   214                                  
+   215                                  
+   216                                  
+   217                                  
+   218 0000015E F2450F10D4              movsd xmm10, xmm12
+   219 00000163 F2410F10C2              movsd xmm0, xmm10
+   220                                  
+   221                                  ;===== Restore original values to integer registers ===============================================================================
+   222 00000168 9D                      popf                                                        ;Restore rflags
+   223 00000169 5B                      pop rbx                                                     ;Restore rbx
+   224 0000016A 415F                    pop r15                                                     ;Restore r15
+   225 0000016C 415E                    pop r14                                                     ;Restore r14
+   226 0000016E 415D                    pop r13                                                     ;Restore r13
+   227 00000170 415C                    pop r12                                                     ;Restore r12
+   228 00000172 415B                    pop r11                                                     ;Restore r11
+   229 00000174 415A                    pop r10                                                     ;Restore r10
+   230 00000176 4159                    pop r9                                                      ;Restore r9
+   231 00000178 4158                    pop r8                                                      ;Restore r8
+   232 0000017A 59                      pop rcx                                                     ;Restore rcx
+   233 0000017B 5A                      pop rdx                                                     ;Restore rdx
+   234 0000017C 5E                      pop rsi                                                     ;Restore rsi
+   235 0000017D 5F                      pop rdi                                                     ;Restore rdi
+   236 0000017E 5D                      pop rbp                                                     ;Restore rbp
+   237                                  
+   238 0000017F C3                      ret
+   239                                  
+   240                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

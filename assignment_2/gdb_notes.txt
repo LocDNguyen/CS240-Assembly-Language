@@ -1,0 +1,60 @@
+This file includes GDB commands that were used with Assignment 2
+
+Place breaks on the main function and on the single called function.  In each case the break attaches to the name of the function.
+
+b driver.c:47
+b driver.c:54
+
+
+
+Immediately before the function in controller is called use gdb to show the value in decimal in the variable that will receive the value returned from the controller.
+
+p/d smaller
+
+
+
+Immediately before the function in controller is called use gdb to show the address in hex where the welcome string message is stored.
+
+p/x &
+
+
+
+Immediately before the function in controller is called use gdb to show the value in rdx in hex.
+
+p/x $rdx
+
+
+
+Immediately before the function in controller is called use gdb to show the top of stack quadword in hex.
+
+x/1xg &buffer
+
+
+
+Show in hex the address of the prompt message string.
+
+p/x &
+
+
+
+After the prompt is displayed and before scanf is called use gdb to output the value in xmmz in hex.
+
+p/x $xmmz
+
+
+
+Again show use scanf to show the value in xmmz.   [It will be the value of the recently  entered first number.]
+
+p/x $xmmz
+
+
+
+Use gdb to show the value in xmm0 in hex the moment before ret executes.
+
+p/x $xmm0
+
+
+
+Use gdb to  show the  value in decimal in xmmz   //This number should mathematically equal the previous output from gdb.
+
+p/d $xmm0

@@ -1,0 +1,255 @@
+     1                                  ;***************************************************************************************************************************
+     2                                  ; Program name: "Getting Hypotenuse". This program takes the input of strings as well as displays those strings after the  *
+     3                                  ; exit of the program. The program also takes two float numbers from the standard input device and performs some arithmetic*
+     4                                  ; in order to oouput to the user the hypotenuse of the two float numbers. If an invalid float input is inputted, the       *
+     5                                  ; program will continue to ask for valid float inputs until two are given.  Copyright (C) 2022 Loc Nguyen.                 *
+     6                                  ;                                                                                                                          *
+     7                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License *
+     8                                  ;version 3 as published by the Free Software Foundation.                                                                   *
+     9                                  ;This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied        *
+    10                                  ;warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.    *
+    11                                  ;A copy of the GNU General Public License v3 is available here:  <https:;www.gnu.org/licenses/>.                           *
+    12                                  ;***************************************************************************************************************************
+    13                                  
+    14                                  
+    15                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    16                                  ;
+    17                                  ;Author information
+    18                                  ;  Author name: Loc Nguyen
+    19                                  ;  Author email: lnguy121@csu.fullerton.edu
+    20                                  ;
+    21                                  ;Program information
+    22                                  ;  Program name: Getting Hypotenuse
+    23                                  ;  Programming languages: One module in C and one module in X86
+    24                                  ;  Date program began: 2022-Sep-7
+    25                                  ;  Date of last update: 2022-Sep-19
+    26                                  ;  Date of reorganization of comments: 2022-Sep-19
+    27                                  ;  Files in this program: driver.c, triangle.asm, run.sh
+    28                                  ;  Status: Finished. The program was tested extensively with no errors in Fedora 36.
+    29                                  ;
+    30                                  ;This file
+    31                                  ;   File name: triangle.asm
+    32                                  ;   Language: X86 with Intel syntax.
+    33                                  ;   Max page width: 133 columns
+    34                                  ;   Assemble: nasm -f elf64 -l triangle.lis -o triangle.o triangle.asm
+    35                                  
+    36                                  
+    37                                  ;===== Begin code area ============================================================================================================
+    38                                  extern printf
+    39                                  extern scanf
+    40                                  extern fgets
+    41                                  extern stdin
+    42                                  extern strchr
+    43                                  
+    44                                  global start
+    45                                  
+    46                                  segment .data
+    47 00000000 506C6561736520656E-     inputprompt db "Please enter your last name: ", 0
+    47 00000009 74657220796F757220-
+    47 00000012 6C617374206E616D65-
+    47 0000001B 3A2000             
+    48 0000001E 0A506C656173652065-     inputprompt2 db 10, "Please enter your title (Mr, Ms, Nurse, Engineer, etc): ", 0
+    48 00000027 6E74657220796F7572-
+    48 00000030 207469746C6520284D-
+    48 00000039 722C204D732C204E75-
+    48 00000042 7273652C20456E6769-
+    48 0000004B 6E6565722C20657463-
+    48 00000054 293A2000           
+    49 00000058 0A506C656173652065-     inputprompt3 db 10, "Please enter the sides of your triangle separated by whitespace: ", 0
+    49 00000061 6E7465722074686520-
+    49 0000006A 7369646573206F6620-
+    49 00000073 796F75722074726961-
+    49 0000007C 6E676C652073657061-
+    49 00000085 726174656420627920-
+    49 0000008E 776869746573706163-
+    49 00000097 653A2000           
+    50 0000009B 257300                  one_string_format db "%s", 0
+    51 0000009E 256C6620256C6600        two_float_format db "%lf %lf", 0
+    52 000000A6 506C6561736520656E-     end db "Please enjoy your triangles %s %s", 10, 10, 0
+    52 000000AF 6A6F7920796F757220-
+    52 000000B8 747269616E676C6573-
+    52 000000C1 2025732025730A0A00 
+    53 000000CA 0A416E20696E76616C-     errormessage db 10, "An invalid input was detected.", 10, 0
+    53 000000D3 696420696E70757420-
+    53 000000DC 776173206465746563-
+    53 000000E5 7465642E0A00       
+    54 000000EB 5468652074776F206E-     output_two_float db "The two numbers are %5.3lf and %5.3lf.", 10, 0
+    54 000000F4 756D62657273206172-
+    54 000000FD 652025352E336C6620-
+    54 00000106 616E642025352E336C-
+    54 0000010F 662E0A00           
+    55 00000113 0A546865206C656E67-     hypotenuse db 10, "The length of the hypotenuse is %.9lf units.", 10, 10, 0
+    55 0000011C 7468206F6620746865-
+    55 00000125 206879706F74656E75-
+    55 0000012E 736520697320252E39-
+    55 00000137 6C6620756E6974732E-
+    55 00000140 0A0A00             
+    56                                  
+    57                                  
+    58                                  
+    59                                  segment .bss  ;Reserved for uninitialized data
+    60 00000000 <res 20h>               name resb 32
+    61 00000020 <res 20h>               title resb 32
+    62                                  
+    63                                  segment .text ;Reserved for executing instructions.
+    64                                  
+    65                                  start:
+    66                                  
+    67                                  ;Prolog ===== Insurance for any caller of this assembly module ====================================================================
+    68                                  ;Any future program calling this module that the data in the caller's GPRs will not be modified.
+    69 00000000 55                      push rbp
+    70 00000001 4889E5                  mov  rbp,rsp
+    71 00000004 57                      push rdi                                                    ;Backup rdi
+    72 00000005 56                      push rsi                                                    ;Backup rsi
+    73 00000006 52                      push rdx                                                    ;Backup rdx
+    74 00000007 51                      push rcx                                                    ;Backup rcx
+    75 00000008 4150                    push r8                                                     ;Backup r8
+    76 0000000A 4151                    push r9                                                     ;Backup r9
+    77 0000000C 4152                    push r10                                                    ;Backup r10
+    78 0000000E 4153                    push r11                                                    ;Backup r11
+    79 00000010 4154                    push r12                                                    ;Backup r12
+    80 00000012 4155                    push r13                                                    ;Backup r13
+    81 00000014 4156                    push r14                                                    ;Backup r14
+    82 00000016 4157                    push r15                                                    ;Backup r15
+    83 00000018 53                      push rbx                                                    ;Backup rbx
+    84 00000019 9C                      pushf                                                       ;Backup rflags
+    85                                  
+    86                                  
+    87                                  
+    88                                  ;Display a prompt message asking for first input
+    89 0000001A B800000000              mov rax, 0
+    90 0000001F 48BF-                   mov rdi, inputprompt           ;"Please enter your last name."
+    90 00000021 [0000000000000000] 
+    91 00000029 E8(00000000)            call printf
+    92                                  ;Taking first string input
+    93 0000002E B800000000              mov rax, 0
+    94 00000033 48BF-                   mov rdi, name                  ;"%s"
+    94 00000035 [0000000000000000] 
+    95                                  ;mov rsi, 32                    ;rsi points to first input on the stack ;;;;;;do I need this?/what does it do
+    96 0000003D 488B1425[00000000]      mov rdx, [stdin]
+    97 00000045 E8(00000000)            call fgets
+    98                                  
+    99 0000004A B800000000              mov rax, 0
+   100 0000004F 48BF-                   mov rdi, name
+   100 00000051 [0000000000000000] 
+   101 00000059 BE0A000000              mov rsi, 10
+   102 0000005E E8(00000000)            call strchr
+   103 00000063 C60000                  mov byte [rax], 0
+   104                                  
+   105                                  ;Display a prompt message asking for second input
+   106 00000066 B800000000              mov rax, 0
+   107 0000006B 48BF-                   mov rdi, inputprompt2             ;"Please enter your title (Mr, Ms, Nurse, Engineer, etc): "
+   107 0000006D [1E00000000000000] 
+   108 00000075 E8(00000000)            call printf
+   109                                  
+   110 0000007A B800000000              mov rax, 0                        ;No xmm registers
+   111 0000007F 48BF-                   mov rdi, title                    ;Copy to rdi the pointer to the start of the array of 32 bytes
+   111 00000081 [2000000000000000] 
+   112 00000089 BE20000000              mov rsi, 32                       ;Provide to fgets the size of the storage made available for input
+   113 0000008E 488B1425[00000000]      mov rdx, [stdin]
+   114 00000096 E8(00000000)            call fgets
+   115                                  
+   116                                  
+   117 0000009B B800000000              mov rax, 0
+   118 000000A0 48BF-                   mov rdi, title
+   118 000000A2 [2000000000000000] 
+   119 000000AA BE0A000000              mov rsi, 10
+   120 000000AF E8(00000000)            call strchr
+   121 000000B4 C60000                  mov byte [rax], 0
+   122 000000B7 EB1B                    jmp floats
+   123                                  
+   124                                  error:
+   125 000000B9 B800000000              mov rax, 0
+   126 000000BE 48BF-                   mov rdi, errormessage           ;Invalid input
+   126 000000C0 [CA00000000000000] 
+   127 000000C8 4881C400080000          add rsp, 2048
+   128 000000CF E8(00000000)            call printf
+   129                                  
+   130                                  ;Display a prompt message asking for two input floats
+   131                                  floats:
+   132 000000D4 B800000000              mov rax, 0
+   133 000000D9 48BF-                   mov rdi, inputprompt3           ;"Please enter the sides of your triangle separated by whitespace"
+   133 000000DB [5800000000000000] 
+   134 000000E3 E8(00000000)            call printf
+   135                                  
+   136 000000E8 4881EC00080000          sub rsp, 2048
+   137 000000EF B800000000              mov rax, 0
+   138 000000F4 48BF-                   mov rdi, two_float_format      ;"%lf%lf"
+   138 000000F6 [9E00000000000000] 
+   139 000000FE 4889E6                  mov rsi, rsp
+   140 00000101 4889E2                  mov rdx, rsp
+   141 00000104 4881C200040000          add rdx, 1024
+   142 0000010B E8(00000000)            call scanf
+   143                                  
+   144                                  
+   145 00000110 F2440F103424            movsd xmm14, [rsp]             ;Moving inputs to xmm registers
+   146 00000116 F2440F10BC24000400-     movsd xmm15, [rsp+1024]
+   146 0000011F 00                 
+   147                                  
+   148 00000120 66450F57ED              xorpd xmm13, xmm13             ;Putting the number 0 into xmm13
+   149                                  
+   150 00000125 66450F2EF5              ucomisd xmm14, xmm13           ;Comparing the user input number to the number 0
+   151 0000012A 768D                    jbe error
+   152 0000012C 66450F2EFD              ucomisd xmm15, xmm13
+   153 00000131 7686                    jbe error
+   154                                  
+   155 00000133 4881C400080000          add rsp, 2048
+   156                                  
+   157 0000013A F2450F59F6              mulsd xmm14, xmm14             ;Squaring both inputs then adding them together to get hypotenuse
+   158 0000013F F2450F59FF              mulsd xmm15, xmm15
+   159                                  
+   160 00000144 F2450F58F7              addsd xmm14, xmm15
+   161                                  
+   162                                  ;Display the hypotenuse
+   163 00000149 B801000000              mov rax, 1
+   164 0000014E 48BF-                   mov rdi, hypotenuse
+   164 00000150 [1301000000000000] 
+   165 00000158 F2410F10C6              movsd xmm0, xmm14
+   166 0000015D E8(00000000)            call printf
+   167                                  
+   168                                  ;area of triangle
+   169                                  ;mulsd xmm14, xmm15
+   170                                  ;mov rbx, 0x4000000000000000
+   171                                  ;push rbx
+   172                                  ;movsd xmm8, [rsp]
+   173                                  ;divsd xmm14, xmm8
+   174                                  
+   175                                  ;16.0 = 0x4030 0000 0000 0000
+   176                                  ;8.0 = 0x4020 0000 0000 0000
+   177                                  ;4.0 - 0x4010 0000 0000 0000
+   178                                  ;2.0 = 0x4000 0000 0000 0000
+   179                                  ;1.0 = 0x3FF0 0000 0000 0000
+   180                                  ;========== Prepare to exit from this program ==================================================================
+   181                                  
+   182                                  ;Display good-bye messages
+   183 00000162 B800000000              mov rax, 0
+   184 00000167 48BF-                   mov rdi, end                   ;"Please enjoy your triangles %s %s"
+   184 00000169 [A600000000000000] 
+   185 00000171 48BE-                   mov rsi, title
+   185 00000173 [2000000000000000] 
+   186 0000017B 48BA-                   mov rdx, name
+   186 0000017D [0000000000000000] 
+   187 00000185 E8(00000000)            call printf
+   188                                  
+   189 0000018A F2410F10C6              movsd xmm0, xmm14
+   190                                  ;===== Restore original values to integer registers ===============================================================================
+   191                                  restore:
+   192 0000018F 9D                      popf                                                        ;Restore rflags
+   193 00000190 5B                      pop rbx                                                     ;Restore rbx
+   194 00000191 415F                    pop r15                                                     ;Restore r15
+   195 00000193 415E                    pop r14                                                     ;Restore r14
+   196 00000195 415D                    pop r13                                                     ;Restore r13
+   197 00000197 415C                    pop r12                                                     ;Restore r12
+   198 00000199 415B                    pop r11                                                     ;Restore r11
+   199 0000019B 415A                    pop r10                                                     ;Restore r10
+   200 0000019D 4159                    pop r9                                                      ;Restore r9
+   201 0000019F 4158                    pop r8                                                      ;Restore r8
+   202 000001A1 59                      pop rcx                                                     ;Restore rcx
+   203 000001A2 5A                      pop rdx                                                     ;Restore rdx
+   204 000001A3 5E                      pop rsi                                                     ;Restore rsi
+   205 000001A4 5F                      pop rdi                                                     ;Restore rdi
+   206 000001A5 5D                      pop rbp                                                     ;Restore rbp
+   207                                  
+   208 000001A6 C3                      ret
+   209                                  
+   210                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

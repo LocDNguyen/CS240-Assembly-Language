@@ -1,0 +1,111 @@
+     1                                  ; ***************************************************************************************************************************
+     2                                  ; Program name: "Adding Integers Array". This program takes a string input as well as a sequence of integer inputs.         *
+     3                                  ; The program then displays the integer inputs that were put in an array as well as sums all the integers. The program then *
+     4                                  ; returns the string input and exits. Copyright (C) 2022 Loc Nguyen.                                                        *
+     5                                  ;                                                                                                                           *
+     6                                  ; This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License *
+     7                                  ; version 3 as published by the Free Software Foundation.                                                                   *
+     8                                  ; This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied        *
+     9                                  ; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.    *
+    10                                  ; A copy of the GNU General Public License v3 is available here:  <https:;www.gnu.org/licenses/>.                           *
+    11                                  ; ***************************************************************************************************************************
+    12                                  ;
+    13                                  ;
+    14                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    15                                  ;
+    16                                  ; Author information
+    17                                  ;   Author name: Loc Nguyen
+    18                                  ;   Author email: lnguy121@csu.fullerton.edu
+    19                                  ;
+    20                                  ; Program information
+    21                                  ;   Program name: Adding Integers Array
+    22                                  ;   Programming languages: One module in C, two modules in C++, 4 modules in X86, and one module in bash
+    23                                  ;   Date program began: 2022-Sep-28
+    24                                  ;   Date of last update: 2022-Oct-9
+    25                                  ;   Date of reorganization of comments: 2022-Oct-9
+    26                                  ;   Files in this program: driver.c, display_array.cpp, isInteger.cpp, manager.asm, input_array.asm, sum.asm, atol.asm, run.sh
+    27                                  ;   Status: Finished. The program was tested extensively with no errors in Fedora 36.
+    28                                  ;
+    29                                  ; This file
+    30                                  ;    File name: sum.asm
+    31                                  ;    Language: X86 with Intel syntax
+    32                                  ;    Max page width: 133 columns
+    33                                  ;    Assemble: nasm -f elf64 -l input_array.lis -o input_array.o input_array.asm
+    34                                  ;
+    35                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    36                                  
+    37                                  
+    38                                  ;===== Begin code area ============================================================================================================
+    39                                  
+    40                                  global sum
+    41                                  
+    42                                  segment .data
+    43                                  
+    44                                  segment .bss  ;Reserved for uninitialized data
+    45                                  
+    46                                  segment .text ;Reserved for executing instructions.
+    47                                  
+    48                                  sum:
+    49                                  
+    50                                  ;Prolog ===== Insurance for any caller of this assembly module ====================================================================
+    51                                  ;Any future program calling this module that the data in the caller's GPRs will not be modified.
+    52 00000000 55                      push rbp
+    53 00000001 4889E5                  mov  rbp,rsp
+    54 00000004 57                      push rdi                                                    ;Backup rdi
+    55 00000005 56                      push rsi                                                    ;Backup rsi
+    56 00000006 52                      push rdx                                                    ;Backup rdx
+    57 00000007 51                      push rcx                                                    ;Backup rcx
+    58 00000008 4150                    push r8                                                     ;Backup r8
+    59 0000000A 4151                    push r9                                                     ;Backup r9
+    60 0000000C 4152                    push r10                                                    ;Backup r10
+    61 0000000E 4153                    push r11                                                    ;Backup r11
+    62 00000010 4154                    push r12                                                    ;Backup r12
+    63 00000012 4155                    push r13                                                    ;Backup r13
+    64 00000014 4156                    push r14                                                    ;Backup r14
+    65 00000016 4157                    push r15                                                    ;Backup r15
+    66 00000018 53                      push rbx                                                    ;Backup rbx
+    67 00000019 9C                      pushf                                                       ;Backup rflags
+    68                                  
+    69                                  
+    70                                  ;Moving parameters
+    71 0000001A 4989FE                  mov r14, rdi                   ;holds the first parameter (array)
+    72 0000001D 4989F5                  mov r13, rsi                   ;holds the second parameter (size of array)
+    73 00000020 41BC00000000            mov r12, 0                     ;loop counter
+    74 00000026 41BB00000000            mov r11, 0                     ;sum
+    75                                  ; mov rdx, 0
+    76                                  ; cvtsi2sd xmm11, rdx            ;converting 0 to a float
+    77                                  ;Start of the loop
+    78                                  loopStart:
+    79 0000002C 4D39EC                  cmp r12, r13
+    80 0000002F 7D09                    jge end
+    81                                  
+    82 00000031 4F031CE6                add r11, [r14 + r12*8]
+    83 00000035 49FFC4                  inc r12
+    84                                  
+    85 00000038 EBF2                    jmp loopStart
+    86                                  
+    87                                  end:
+    88 0000003A 4C89D8                  mov rax, r11
+    89                                  ; movsd xmm0, xmm11
+    90                                  
+    91                                  ;===== Restore original values to integer registers ===============================================================================
+    92                                  restore:
+    93 0000003D 9D                      popf                                                        ;Restore rflags
+    94 0000003E 5B                      pop rbx                                                     ;Restore rbx
+    95 0000003F 415F                    pop r15                                                     ;Restore r15
+    96 00000041 415E                    pop r14                                                     ;Restore r14
+    97 00000043 415D                    pop r13                                                     ;Restore r13
+    98 00000045 415C                    pop r12                                                     ;Restore r12
+    99 00000047 415B                    pop r11                                                     ;Restore r11
+   100 00000049 415A                    pop r10                                                     ;Restore r10
+   101 0000004B 4159                    pop r9                                                      ;Restore r9
+   102 0000004D 4158                    pop r8                                                      ;Restore r8
+   103 0000004F 59                      pop rcx                                                     ;Restore rcx
+   104 00000050 5A                      pop rdx                                                     ;Restore rdx
+   105 00000051 5E                      pop rsi                                                     ;Restore rsi
+   106 00000052 5F                      pop rdi                                                     ;Restore rdi
+   107 00000053 5D                      pop rbp                                                     ;Restore rbp
+   108                                  
+   109 00000054 C3                      ret
+   110                                  
+   111                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

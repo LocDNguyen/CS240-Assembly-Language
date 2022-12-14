@@ -1,0 +1,193 @@
+     1                                  ;************************************************************************************************************************
+     2                                  ;Program name: "ftoa".  This program accepts an array of char and a float number and converts the number into its ascii *
+     3                                  ;value.  This is a library function not specific to any one program.  Copyright (C) 2022 Loc Nguyen                     *
+     4                                  ;                                                                                                                       *
+     5                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public      *
+     6                                  ;License version 3 as published by the Free Software Foundation.  This program is distributed in the hope that it will  *
+     7                                  ;be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR  *
+     8                                  ;PURPOSE.  See the GNU General Public License for more details.  A copy of the GNU General Public License v3 is         *
+     9                                  ;available here:  <https://www.gnu.org/licenses/>.                                                                      *
+    10                                  ;************************************************************************************************************************
+    11                                  ;
+    12                                  ;Author information
+    13                                  ;   Author name: Loc Nguyen
+    14                                  ;   Author's email: lnguy121@csu.fullerton.edu
+    15                                  ;
+    16                                  ;Function information
+    17                                  ;   Function name: ftoa
+    18                                  ;   Programming language: X86
+    19                                  ;   Language syntax: Intel
+    20                                  ;   Function prototype:  void ftoa(double value, char * string)
+    21                                  ;   Reference: None
+    22                                  ;   Input parameter: The char array and float number
+    23                                  ;   Output parameter: A pointer to char array of inputted float number
+    24                                  ;
+    25                                  ;Assemble: nasm -f elf64 -o ftoa.o -l ftoa.lis ftoa.asm
+    26                                  ;
+    27                                  ;Date development began: 2018-Oct-29
+    28                                  ;Date comments restructured: 2022-Oct-29
+    29                                  ;
+    30                                  ;===== Begin executable code section ====================================================================================
+    31                                  
+    32                                  global ftoa
+    33                                  ; external functions
+    34                                  
+    35                                  ; constant declarations
+    36                                  
+    37                                  segment .data
+    38                                  ; initialized variable declarations
+    39 00000000 000000000000F0BF        neg_one dq -1.0
+    40 00000008 000000000000F03F        one dq 1.0
+    41 00000010 2E00000000000000        period dq '.'
+    42 00000018 0A                      limit db 10
+    43                                  
+    44                                  segment .bss
+    45                                  ;This segment is empty
+    46                                  
+    47                                  segment .text
+    48                                  ;This segment is empty
+    49                                  
+    50                                  ftoa:
+    51                                  
+    52                                  ; Prolog ===== Insurance for any caller of this assembly module ========================================================
+    53 00000000 55                      push rbp
+    54 00000001 4889E5                  mov  rbp,rsp
+    55 00000004 57                      push rdi
+    56 00000005 56                      push rsi
+    57 00000006 52                      push rdx
+    58 00000007 51                      push rcx
+    59 00000008 4150                    push r8
+    60 0000000A 4151                    push r9
+    61 0000000C 4152                    push r10
+    62 0000000E 4153                    push r11
+    63 00000010 4154                    push r12
+    64 00000012 4155                    push r13
+    65 00000014 4156                    push r14
+    66 00000016 4157                    push r15
+    67 00000018 53                      push rbx
+    68 00000019 9C                      pushf
+    69                                  
+    70                                  
+    71 0000001A F2440F10F8              movsd xmm15, xmm0      ;carries the float that was passed
+    72 0000001F 4889FB                  mov rbx, rdi           ;carries the char array that was passed
+    73                                  
+    74                                  
+    75 00000022 41BB0A000000            mov r11, 10            ;digit limit
+    76 00000028 41BC00000000            mov r12, 0             ;char pointer counter
+    77 0000002E 41BD00000000            mov r13, 0             ;decimal counter
+    78 00000034 41BE00000000            mov r14, 0             ;stack counter
+    79                                  
+    80                                  ; check if negative
+    81 0000003A B800000000              mov rax, 0
+    82 0000003F F24C0F2AD8              cvtsi2sd xmm11, rax         ;xmm11 has 0.0 in it now
+    83 00000044 66450F2EFB              ucomisd xmm15, xmm11
+    84 00000049 7310                    jae start
+    85                                  
+    86 0000004B C6032D                  mov byte [rbx], '-'
+    87 0000004E F2440F593C25-           mulsd xmm15, [neg_one]
+    87 00000054 [00000000]         
+    88 00000058 49FFC4                  inc r12
+    89                                  
+    90                                  start:
+    91                                  
+    92                                  ; check if float - interger portion of float = 0?
+    93                                  move_decimal:
+    94 0000005B F24D0F2DD7              cvtsd2si r10, xmm15      ;original number in xmm15 ie:34.5
+    95 00000060 F24D0F2AF2              cvtsi2sd xmm14, r10      ;xmm14 has integer number of original number ie:34
+    96                                  
+    97 00000065 F2450F10EF              movsd xmm13, xmm15       ;make copy of original number
+    98 0000006A F2450F5CEE              subsd xmm13, xmm14       ;subtract original number from integer number ie:34.5 - 34
+    99 0000006F 66450F2EEB              ucomisd xmm13, xmm11     ;compare original number to 0
+   100 00000074 741D                    je convert
+   101 00000076 4983FB00                cmp r11, 0
+   102 0000007A 7417                    je convert
+   103                                  
+   104 0000007C B80A000000              mov rax, 10
+   105 00000081 F24C0F2AE0              cvtsi2sd xmm12, rax
+   106 00000086 F2450F59FC              mulsd xmm15, xmm12       ;multiply original number by 10 to move the decimal point
+   107 0000008B 49FFC5                  inc r13                  ;count how many times the decimal point was moved so we can move it back later
+   108 0000008E 49FFCB                  dec r11
+   109 00000091 EBC8                    jmp move_decimal
+   110                                  
+   111                                  
+   112                                  convert:
+   113 00000093 F24D0F2DFF              cvtsd2si r15, xmm15        ;convert float to int
+   114                                  
+   115                                  decimal_to_ascii:
+   116 00000098 4983FD00                cmp r13, 0
+   117 0000009C 741E                    je part_two
+   118                                  
+   119 0000009E 4C89F8                  mov rax, r15              ;remove LSD
+   120 000000A1 4899                    cqo
+   121 000000A3 41BF0A000000            mov r15, 10
+   122 000000A9 49F7FF                  idiv r15
+   123 000000AC 4989C7                  mov r15, rax              ;keep track of quotient for continuation to part two
+   124                                  
+   125 000000AF 4883C230                add rdx, '0'              ;convert and push onto stack
+   126 000000B3 52                      push rdx
+   127                                  
+   128 000000B4 49FFCD                  dec r13
+   129 000000B7 49FFC6                  inc r14
+   130 000000BA EBDC                    jmp decimal_to_ascii
+   131                                  
+   132                                  part_two:
+   133                                  
+   134 000000BC 6A2E                    push qword '.'
+   135 000000BE 49FFC6                  inc r14
+   136                                  
+   137                                  integer_to_ascii:
+   138 000000C1 4C89F8                  mov rax, r15             ;remove LSD
+   139 000000C4 4899                    cqo
+   140 000000C6 41BF0A000000            mov r15, 10
+   141 000000CC 49F7FF                  idiv r15
+   142 000000CF 4989C7                  mov r15, rax             ;when quotient is 0 we know to stop
+   143 000000D2 4983FF00                cmp r15, 0
+   144 000000D6 740D                    je push_last
+   145                                  
+   146 000000D8 4883C230                add rdx, '0'             ;convert and push onto stack
+   147 000000DC 52                      push rdx
+   148                                  
+   149 000000DD 49FFCD                  dec r13
+   150 000000E0 49FFC6                  inc r14
+   151 000000E3 EBDC                    jmp integer_to_ascii
+   152                                  
+   153                                  
+   154                                  ;convert and push the last digit
+   155                                  push_last:
+   156 000000E5 4883C230                add rdx, '0'
+   157 000000E9 52                      push rdx
+   158 000000EA 49FFC6                  inc r14
+   159                                  
+   160                                  ;load char pointer
+   161                                  load_return:
+   162 000000ED 4983FE00                cmp r14, 0
+   163 000000F1 740D                    je done
+   164                                  
+   165 000000F3 58                      pop rax
+   166 000000F4 4A890423                mov [rbx + r12], rax
+   167 000000F8 49FFC4                  inc r12
+   168 000000FB 49FFCE                  dec r14
+   169 000000FE EBED                    jmp load_return
+   170                                  
+   171                                  done:
+   172 00000100 49FFC4                  inc r12
+   173 00000103 42C6042300              mov byte [rbx + r12], 0     ;add null terminator for our string
+   174                                  
+   175                                  ;===== Restore original values to integer registers ===================================================================
+   176 00000108 9D                      popf
+   177 00000109 5B                      pop rbx
+   178 0000010A 415F                    pop r15
+   179 0000010C 415E                    pop r14
+   180 0000010E 415D                    pop r13
+   181 00000110 415C                    pop r12
+   182 00000112 415B                    pop r11
+   183 00000114 415A                    pop r10
+   184 00000116 4159                    pop r9
+   185 00000118 4158                    pop r8
+   186 0000011A 59                      pop rcx
+   187 0000011B 5A                      pop rdx
+   188 0000011C 5E                      pop rsi
+   189 0000011D 5F                      pop rdi
+   190 0000011E 5D                      pop rbp
+   191                                  
+   192 0000011F C3                      ret
