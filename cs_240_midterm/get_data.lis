@@ -1,0 +1,121 @@
+     1                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+     2                                  ;
+     3                                  ; Author information
+     4                                  ;   Author name: Loc Nguyen
+     5                                  ;   Author email: lnguy121@csu.fullerton.edu
+     6                                  ;   Date: October 12, 2022
+     7                                  ;   Section ID: Section MW 12-2pm
+     8                                  ;
+     9                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    10                                  
+    11                                  
+    12                                  ;===== Begin code area ============================================================================================================
+    13                                  extern printf
+    14                                  extern scanf
+    15                                  extern isfloat
+    16                                  extern atof
+    17                                  
+    18                                  global inputs
+    19                                  
+    20                                  segment .data
+    21 00000000 257300                  one_string_format db "%s", 0
+    22                                  
+    23                                  segment .bss  ;Reserved for uninitialized data
+    24                                  
+    25                                  segment .text ;Reserved for executing instructions.
+    26                                  
+    27                                  inputs:
+    28                                  
+    29                                  ;Prolog ===== Insurance for any caller of this assembly module ====================================================================
+    30                                  ;Any future program calling this module that the data in the caller's GPRs will not be modified.
+    31 00000000 55                      push rbp
+    32 00000001 4889E5                  mov  rbp,rsp
+    33 00000004 57                      push rdi                                                    ;Backup rdi
+    34 00000005 56                      push rsi                                                    ;Backup rsi
+    35 00000006 52                      push rdx                                                    ;Backup rdx
+    36 00000007 51                      push rcx                                                    ;Backup rcx
+    37 00000008 4150                    push r8                                                     ;Backup r8
+    38 0000000A 4151                    push r9                                                     ;Backup r9
+    39 0000000C 4152                    push r10                                                    ;Backup r10
+    40 0000000E 4153                    push r11                                                    ;Backup r11
+    41 00000010 4154                    push r12                                                    ;Backup r12
+    42 00000012 4155                    push r13                                                    ;Backup r13
+    43 00000014 4156                    push r14                                                    ;Backup r14
+    44 00000016 4157                    push r15                                                    ;Backup r15
+    45 00000018 53                      push rbx                                                    ;Backup rbx
+    46 00000019 9C                      pushf                                                       ;Backup rflags
+    47                                  
+    48                                  
+    49                                  ;Moving parameters
+    50 0000001A 4989FE                  mov r14, rdi                   ;holds the first parameter (array)
+    51 0000001D 4989F5                  mov r13, rsi                   ;holds the second parameter (size of array)
+    52 00000020 41BC00000000            mov r12, 0                     ;loop counter
+    53                                  
+    54                                  ;Start of the loop
+    55                                  loopStart:
+    56 00000026 4881EC00040000          sub rsp, 1024
+    57 0000002D B800000000              mov rax, 0
+    58 00000032 48BF-                   mov rdi, one_string_format           ;%s
+    58 00000034 [0000000000000000] 
+    59 0000003C 4889E6                  mov rsi, rsp
+    60 0000003F E8(00000000)            call scanf
+    61                                  
+    62                                  
+    63                                  ;Checks for ctrl-D
+    64 00000044 4898                    cdqe
+    65 00000046 4883F8FF                cmp rax, -1
+    66 0000004A 7445                    je pressed
+    67                                  
+    68                                  ;Validation
+    69 0000004C B800000000              mov rax, 0
+    70 00000051 4889E7                  mov rdi, rsp
+    71 00000054 E8(00000000)            call isfloat                  ;checks user input, if integer return 1, else return 0
+    72 00000059 4883F800                cmp rax, 0
+    73 0000005D 7429                    je error
+    74                                  
+    75                                  ;Conversion
+    76 0000005F B800000000              mov rax, 0
+    77 00000064 4889E7                  mov rdi, rsp
+    78 00000067 E8(00000000)            call atof                        ;turns string input into a number
+    79 0000006C F2440F10C0              movsd xmm8, xmm0                 ;stores number into r11
+    80                                  
+    81                                  ;Moving into array
+    82 00000071 F2470F1104E6            movsd [r14 + r12*8], xmm8        ;stores stored number in r11 into array, r14
+    83 00000077 49FFC4                  inc r12                       ;increments r12 to move to next array index
+    84 0000007A 4881C400040000          add rsp, 1024
+    85                                  
+    86 00000081 4D39EC                  cmp r12, r13                   ;compares current counter to size of array
+    87 00000084 7412                    je end
+    88                                  
+    89 00000086 EB9E                    jmp loopStart
+    90                                  
+    91                                  error:
+    92 00000088 4881C400040000          add rsp, 1024
+    93 0000008F EB95                    jmp loopStart
+    94                                  
+    95                                  pressed:
+    96 00000091 4881C400040000          add rsp, 1024
+    97                                  
+    98                                  end:
+    99 00000098 4C89E0                  mov rax, r12
+   100                                  ;===== Restore original values to integer registers ===============================================================================
+   101                                  restore:
+   102 0000009B 9D                      popf                                                        ;Restore rflags
+   103 0000009C 5B                      pop rbx                                                     ;Restore rbx
+   104 0000009D 415F                    pop r15                                                     ;Restore r15
+   105 0000009F 415E                    pop r14                                                     ;Restore r14
+   106 000000A1 415D                    pop r13                                                     ;Restore r13
+   107 000000A3 415C                    pop r12                                                     ;Restore r12
+   108 000000A5 415B                    pop r11                                                     ;Restore r11
+   109 000000A7 415A                    pop r10                                                     ;Restore r10
+   110 000000A9 4159                    pop r9                                                      ;Restore r9
+   111 000000AB 4158                    pop r8                                                      ;Restore r8
+   112 000000AD 59                      pop rcx                                                     ;Restore rcx
+   113 000000AE 5A                      pop rdx                                                     ;Restore rdx
+   114 000000AF 5E                      pop rsi                                                     ;Restore rsi
+   115 000000B0 5F                      pop rdi                                                     ;Restore rdi
+   116 000000B1 5D                      pop rbp                                                     ;Restore rbp
+   117                                  
+   118 000000B2 C3                      ret
+   119                                  
+   120                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

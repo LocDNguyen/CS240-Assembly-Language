@@ -1,0 +1,181 @@
+     1                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+     2                                  ;
+     3                                  ; Author information
+     4                                  ;   Author name: Loc Nguyen
+     5                                  ;   Author email: lnguy121@csu.fullerton.edu
+     6                                  ;   Date: October 12, 2022
+     7                                  ;   Section ID: Section MW 12-2pm
+     8                                  ;
+     9                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    10                                  
+    11                                  
+    12                                  ;===== Begin code area ============================================================================================================
+    13                                  extern printf
+    14                                  extern scanf
+    15                                  extern fgets
+    16                                  extern stdin
+    17                                  extern strchr
+    18                                  
+    19                                  extern max
+    20                                  extern inputs
+    21                                  extern Display
+    22                                  
+    23                                  arraysize equ 6
+    24                                  
+    25                                  global start
+    26                                  
+    27                                  segment .data
+    28 00000000 506C6561736520656E-     inputprompt db "Please enter your name: ", 0
+    28 00000009 74657220796F757220-
+    28 00000012 6E616D653A2000     
+    29 00000019 506C6561736520656E-     inputprompt3 db "Please enter floating point numbers separated by ws to be stored in an array of size 6 cells.", 10, 0
+    29 00000022 74657220666C6F6174-
+    29 0000002B 696E6720706F696E74-
+    29 00000034 206E756D6265727320-
+    29 0000003D 736570617261746564-
+    29 00000046 20627920777320746F-
+    29 0000004F 2062652073746F7265-
+    29 00000058 6420696E20616E2061-
+    29 00000061 72726179206F662073-
+    29 0000006A 697A6520362063656C-
+    29 00000073 6C732E0A00         
+    30 00000078 416674657220746865-     inputprompt4 db "After the last input press <enter> followed by <control+D>.", 10, 0
+    30 00000081 206C61737420696E70-
+    30 0000008A 757420707265737320-
+    30 00000093 3C656E7465723E2066-
+    30 0000009C 6F6C6C6F7765642062-
+    30 000000A5 79203C636F6E74726F-
+    30 000000AE 6C2B443E2E0A00     
+    31 000000B5 0A5468657365206E75-     inputprompt5 db 10, "These numbers are stored in the array", 10, 0
+    31 000000BE 6D6265727320617265-
+    31 000000C7 2073746F7265642069-
+    31 000000D0 6E2074686520617272-
+    31 000000D9 61790A00           
+    32 000000DD 0A546865206C617267-     amount db 10, "The largest value in the array is %.10lf", 10, 10, 0
+    32 000000E6 6573742076616C7565-
+    32 000000EF 20696E207468652061-
+    32 000000F8 727261792069732025-
+    32 00000101 2E31306C660A0A00   
+    33 00000109 257300                  one_string_format db "%s", 0
+    34 0000010C 256C6620256C6600        two_float_format db "%lf %lf", 0
+    35                                  
+    36                                  
+    37                                  segment .bss  ;Reserved for uninitialized data
+    38 00000000 <res 40h>               name resb 64
+    39 00000040 <res 30h>               array resq 6
+    40                                  
+    41                                  segment .text ;Reserved for executing instructions.
+    42                                  
+    43                                  start:
+    44                                  
+    45                                  ;Prolog ===== Insurance for any caller of this assembly module ====================================================================
+    46                                  ;Any future program calling this module that the data in the caller's GPRs will not be modified.
+    47 00000000 55                      push rbp
+    48 00000001 4889E5                  mov  rbp,rsp
+    49 00000004 57                      push rdi                                                    ;Backup rdi
+    50 00000005 56                      push rsi                                                    ;Backup rsi
+    51 00000006 52                      push rdx                                                    ;Backup rdx
+    52 00000007 51                      push rcx                                                    ;Backup rcx
+    53 00000008 4150                    push r8                                                     ;Backup r8
+    54 0000000A 4151                    push r9                                                     ;Backup r9
+    55 0000000C 4152                    push r10                                                    ;Backup r10
+    56 0000000E 4153                    push r11                                                    ;Backup r11
+    57 00000010 4154                    push r12                                                    ;Backup r12
+    58 00000012 4155                    push r13                                                    ;Backup r13
+    59 00000014 4156                    push r14                                                    ;Backup r14
+    60 00000016 4157                    push r15                                                    ;Backup r15
+    61 00000018 53                      push rbx                                                    ;Backup rbx
+    62 00000019 9C                      pushf                                                       ;Backup rflags
+    63                                  
+    64                                  
+    65                                  ;Prompt user
+    66 0000001A B800000000              mov rax, 0
+    67 0000001F 48BF-                   mov rdi, inputprompt                         ;"Please enter your name: '
+    67 00000021 [0000000000000000] 
+    68 00000029 E8(00000000)            call printf
+    69                                  
+    70                                  ;Taking name input
+    71 0000002E B800000000              mov rax, 0
+    72 00000033 48BF-                   mov rdi, name                               ;"%s"
+    72 00000035 [0000000000000000] 
+    73 0000003D BE20000000              mov rsi, 32
+    74 00000042 488B1425[00000000]      mov rdx, [stdin]
+    75 0000004A E8(00000000)            call fgets
+    76                                  
+    77 0000004F B800000000              mov rax, 0
+    78 00000054 48BF-                   mov rdi, name
+    78 00000056 [0000000000000000] 
+    79 0000005E BE0A000000              mov rsi, 10
+    80 00000063 E8(00000000)            call strchr
+    81 00000068 C60000                  mov byte [rax], 0
+    82                                  
+    83 0000006B B800000000              mov rax, 0
+    84 00000070 48BF-                   mov rdi, inputprompt3                         ;"Please enter floating point numbers separated by ws to be stored in an array of size 6 cells."
+    84 00000072 [1900000000000000] 
+    85 0000007A E8(00000000)            call printf
+    86                                  
+    87 0000007F B800000000              mov rax, 0
+    88 00000084 48BF-                   mov rdi, inputprompt4                         ;"After the last input press <enter> followed by <control+D>."
+    88 00000086 [7800000000000000] 
+    89 0000008E E8(00000000)            call printf
+    90                                  
+    91                                  ;Taking string inputs
+    92 00000093 B800000000              mov rax, 0
+    93 00000098 48BF-                   mov rdi, array
+    93 0000009A [4000000000000000] 
+    94 000000A2 BE06000000              mov rsi, arraysize
+    95 000000A7 E8(00000000)            call inputs
+    96 000000AC 4989C4                  mov r12, rax
+    97                                  
+    98                                  ;Print array
+    99 000000AF B800000000              mov rax, 0
+   100 000000B4 48BF-                   mov rdi, inputprompt5
+   100 000000B6 [B500000000000000] 
+   101 000000BE E8(00000000)            call printf
+   102                                  
+   103                                  ;Print elements in the array
+   104 000000C3 B800000000              mov rax, 0
+   105 000000C8 48BF-                   mov rdi, array
+   105 000000CA [4000000000000000] 
+   106 000000D2 4C89E6                  mov rsi, r12
+   107 000000D5 E8(00000000)            call Display
+   108                                  
+   109                                  ;Adding inputs
+   110 000000DA B800000000              mov rax, 0
+   111 000000DF 48BF-                   mov rdi, array
+   111 000000E1 [4000000000000000] 
+   112 000000E9 4C89E6                  mov rsi, r12
+   113 000000EC E8(00000000)            call max
+   114 000000F1 F2440F10D0              movsd xmm10, xmm0
+   115                                  
+   116                                  ;Print total number of inputs and sum
+   117 000000F6 B801000000              mov rax, 1
+   118 000000FB 48BF-                   mov rdi, amount
+   118 000000FD [DD00000000000000] 
+   119 00000105 F2410F10C2              movsd xmm0, xmm10
+   120 0000010A E8(00000000)            call printf
+   121                                  
+   122                                  ;Finish execution
+   123 0000010F 48B8-                   mov rax, name
+   123 00000111 [0000000000000000] 
+   124                                  ;===== Restore original values to integer registers ===============================================================================
+   125                                  restore:
+   126 00000119 9D                      popf                                                        ;Restore rflags
+   127 0000011A 5B                      pop rbx                                                     ;Restore rbx
+   128 0000011B 415F                    pop r15                                                     ;Restore r15
+   129 0000011D 415E                    pop r14                                                     ;Restore r14
+   130 0000011F 415D                    pop r13                                                     ;Restore r13
+   131 00000121 415C                    pop r12                                                     ;Restore r12
+   132 00000123 415B                    pop r11                                                     ;Restore r11
+   133 00000125 415A                    pop r10                                                     ;Restore r10
+   134 00000127 4159                    pop r9                                                      ;Restore r9
+   135 00000129 4158                    pop r8                                                      ;Restore r8
+   136 0000012B 59                      pop rcx                                                     ;Restore rcx
+   137 0000012C 5A                      pop rdx                                                     ;Restore rdx
+   138 0000012D 5E                      pop rsi                                                     ;Restore rsi
+   139 0000012E 5F                      pop rdi                                                     ;Restore rdi
+   140 0000012F 5D                      pop rbp                                                     ;Restore rbp
+   141                                  
+   142 00000130 C3                      ret
+   143                                  
+   144                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

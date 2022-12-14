@@ -1,0 +1,93 @@
+     1                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+     2                                  ;
+     3                                  ; Author information
+     4                                  ;   Author name: Loc Nguyen
+     5                                  ;   Author email: lnguy121@csu.fullerton.edu
+     6                                  ;   Date: October 12, 2022
+     7                                  ;   Section ID: Section MW 12-2pm
+     8                                  ;
+     9                                  ; ========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3
+    10                                  
+    11                                  
+    12                                  ;===== Begin code area ============================================================================================================
+    13                                  
+    14                                  global max
+    15                                  
+    16                                  segment .data
+    17                                  
+    18                                  segment .bss  ;Reserved for uninitialized data
+    19                                  
+    20                                  segment .text ;Reserved for executing instructions.
+    21                                  
+    22                                  max:
+    23                                  
+    24                                  ;Prolog ===== Insurance for any caller of this assembly module ====================================================================
+    25                                  ;Any future program calling this module that the data in the caller's GPRs will not be modified.
+    26 00000000 55                      push rbp
+    27 00000001 4889E5                  mov  rbp,rsp
+    28 00000004 57                      push rdi                                                    ;Backup rdi
+    29 00000005 56                      push rsi                                                    ;Backup rsi
+    30 00000006 52                      push rdx                                                    ;Backup rdx
+    31 00000007 51                      push rcx                                                    ;Backup rcx
+    32 00000008 4150                    push r8                                                     ;Backup r8
+    33 0000000A 4151                    push r9                                                     ;Backup r9
+    34 0000000C 4152                    push r10                                                    ;Backup r10
+    35 0000000E 4153                    push r11                                                    ;Backup r11
+    36 00000010 4154                    push r12                                                    ;Backup r12
+    37 00000012 4155                    push r13                                                    ;Backup r13
+    38 00000014 4156                    push r14                                                    ;Backup r14
+    39 00000016 4157                    push r15                                                    ;Backup r15
+    40 00000018 53                      push rbx                                                    ;Backup rbx
+    41 00000019 9C                      pushf                                                       ;Backup rflags
+    42                                  
+    43                                  
+    44                                  ;Moving parameters
+    45 0000001A 4989FE                  mov r14, rdi                   ;holds the first parameter (array)
+    46 0000001D 4989F5                  mov r13, rsi                   ;holds the second parameter (size of array)
+    47 00000020 41BC00000000            mov r12, 0                     ;loop counter
+    48                                  
+    49 00000026 B800000000              mov rax, 0
+    50 0000002B F24C0F2AD0              cvtsi2sd xmm10, rax
+    51 00000030 F2470F1014E6            movsd xmm10, [r14+ r12*8]
+    52                                  
+    53                                  ;Start of the loop
+    54                                  loopStart:
+    55 00000036 4D39EC                  cmp r12, r13
+    56 00000039 7D1C                    jge end
+    57                                  
+    58 0000003B F2470F101CE6            movsd xmm11, [r14 + r12*8]
+    59 00000041 66450F2ED3              ucomisd xmm10, xmm11
+    60 00000046 7205                    jb shifting                     ;Jump to block labeled "shifting"
+    61                                  
+    62 00000048 49FFC4                  inc r12
+    63 0000004B EBE9                    jmp loopStart
+    64                                  
+    65                                  shifting:
+    66 0000004D F2450F10D3              movsd xmm10, xmm11
+    67 00000052 49FFC4                  inc r12
+    68 00000055 EBDF                    jmp loopStart
+    69                                  
+    70                                  end:
+    71 00000057 F2410F10C2              movsd xmm0, xmm10
+    72                                  
+    73                                  ;===== Restore original values to integer registers ===============================================================================
+    74                                  restore:
+    75 0000005C 9D                      popf                                                        ;Restore rflags
+    76 0000005D 5B                      pop rbx                                                     ;Restore rbx
+    77 0000005E 415F                    pop r15                                                     ;Restore r15
+    78 00000060 415E                    pop r14                                                     ;Restore r14
+    79 00000062 415D                    pop r13                                                     ;Restore r13
+    80 00000064 415C                    pop r12                                                     ;Restore r12
+    81 00000066 415B                    pop r11                                                     ;Restore r11
+    82 00000068 415A                    pop r10                                                     ;Restore r10
+    83 0000006A 4159                    pop r9                                                      ;Restore r9
+    84 0000006C 4158                    pop r8                                                      ;Restore r8
+    85 0000006E 59                      pop rcx                                                     ;Restore rcx
+    86 0000006F 5A                      pop rdx                                                     ;Restore rdx
+    87 00000070 5E                      pop rsi                                                     ;Restore rsi
+    88 00000071 5F                      pop rdi                                                     ;Restore rdi
+    89 00000072 5D                      pop rbp                                                     ;Restore rbp
+    90                                  
+    91 00000073 C3                      ret
+    92                                  
+    93                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**

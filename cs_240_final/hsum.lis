@@ -1,0 +1,98 @@
+     1                                  ;=====================================================================================================================================
+     2                                  ;  Name: Loc Nguyen
+     3                                  ;  Email: locdacnguyen0@gmail.com
+     4                                  ;	This course number, namely “CPSC240-1”.
+     5                                  ;	The words: “Final Program Test”.
+     6                                  ;======================================================================================================================================
+     7                                  
+     8                                  
+     9                                  extern scanf
+    10                                  extern printf
+    11                                  
+    12                                  global harmonicsum
+    13                                  
+    14                                  section .data
+    15 00000000 256C640A00                int_format db "%ld", 10, 0
+    16 00000005 696E20686D65616E20-       text2 db "in hmean %0.9lf", 10, 0
+    16 0000000E 25302E396C660A00   
+    17                                  
+    18                                  section .bss
+    19                                  
+    20                                  section .text
+    21                                  
+    22                                  harmonicsum:
+    23 00000000 55                      push rbp                                          ;Backup rbp
+    24 00000001 4889E5                  mov  rbp,rsp                                      ;The base pointer now points to top of stack
+    25 00000004 57                      push rdi                                          ;Backup rdi
+    26 00000005 56                      push rsi                                          ;Backup rsi
+    27 00000006 52                      push rdx                                          ;Backup rdx
+    28 00000007 51                      push rcx                                          ;Backup rcx
+    29 00000008 4150                    push r8                                           ;Backup r8
+    30 0000000A 4151                    push r9                                           ;Backup r9
+    31 0000000C 4152                    push r10                                          ;Backup r10
+    32 0000000E 4153                    push r11                                          ;Backup r11
+    33 00000010 4154                    push r12                                          ;Backup r12
+    34 00000012 4155                    push r13                                          ;Backup r13
+    35 00000014 4156                    push r14                                          ;Backup r14
+    36 00000016 4157                    push r15                                          ;Backup r15
+    37 00000018 53                      push rbx                                          ;Backup rbx
+    38 00000019 9C                      pushf                                             ;Backup rflags
+    39                                  
+    40 0000001A 4989FE                    mov r14, rdi    ;array
+    41 0000001D 4989F5                    mov r13, rsi    ;count
+    42 00000020 41BC00000000              mov r12, 0      ;index
+    43                                  
+    44                                  
+    45                                    ; 1 from 1/n
+    46 00000026 48B8000000000000F0-       mov rax, 0x3ff0000000000000
+    46 0000002F 3F                 
+    47 00000030 664C0F6EF8                movq xmm15, rax
+    48                                  
+    49                                    ; xmm10 = 0.0
+    50 00000035 66450F57D2                xorpd xmm10, xmm10
+    51                                    start_loop:
+    52                                  
+    53 0000003A 4D39EC                    cmp r12, r13
+    54 0000003D 741F                      je hmean
+    55                                  
+    56 0000003F F2470F1034E6              movsd xmm14, [r14+ r12*8]
+    57                                  
+    58                                    ; divide 1/current n; add to total
+    59 00000045 F2450F10EF                movsd xmm13, xmm15
+    60 0000004A F2450F5EEE                divsd xmm13, xmm14
+    61 0000004F F2450F58D5                addsd xmm10, xmm13
+    62                                  
+    63 00000054 66450F57F6                xorpd xmm14,xmm14
+    64 00000059 49FFC4                    inc r12
+    65                                  
+    66 0000005C EBDC                      jmp start_loop
+    67                                  
+    68                                  
+    69                                  hmean:
+    70 0000005E F24D0F2ADD                cvtsi2sd xmm11, r13
+    71 00000063 F2450F5EDA                divsd xmm11, xmm10
+    72                                  
+    73                                  end_pops:
+    74                                  
+    75                                    ; Mov sum into xmm0 to return.
+    76 00000068 F2410F10CB                movsd xmm1, xmm11
+    77 0000006D F2410F10C2                movsd xmm0, xmm10
+    78                                  
+    79                                    ; pop registers.
+    80 00000072 9D                        popf
+    81 00000073 5B                        pop rbx
+    82 00000074 415F                      pop r15
+    83 00000076 415E                      pop r14
+    84 00000078 415D                      pop r13
+    85 0000007A 415C                      pop r12
+    86 0000007C 415B                      pop r11
+    87 0000007E 415A                      pop r10
+    88 00000080 4159                      pop r9
+    89 00000082 4158                      pop r8
+    90 00000084 59                        pop rcx
+    91 00000085 5A                        pop rdx
+    92 00000086 5E                        pop rsi
+    93 00000087 5F                        pop rdi
+    94 00000088 5D                        pop rbp
+    95                                  
+    96 00000089 C3                        ret

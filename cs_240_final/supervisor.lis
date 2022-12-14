@@ -1,0 +1,186 @@
+     1                                  ;=====================================================================================================================================
+     2                                  ;  Name: Loc Nguyen
+     3                                  ;  Email: locdacnguyen0@gmail.com
+     4                                  ;	This course number, namely “CPSC240-1”.
+     5                                  ;	The words: “Final Program Test”.
+     6                                  ;======================================================================================================================================
+     7                                  
+     8                                  
+     9                                  
+    10                                  
+    11                                  ; //===== Begin code area ===========================================================================================================
+    12                                  extern printf
+    13                                  extern scanf
+    14                                  extern random_fill_array
+    15                                  extern printArray
+    16                                  extern harmonicsum
+    17                                  
+    18                                  global supervisor
+    19                                  
+    20                                  TITLE_LEN equ 50
+    21                                  
+    22                                  segment .data
+    23                                  
+    24 00000000 506C6561736520696E-     prompt db "Please input the count of number of data items to be placed into the array with (maximum 1 million): ", 0
+    24 00000009 707574207468652063-
+    24 00000012 6F756E74206F66206E-
+    24 0000001B 756D626572206F6620-
+    24 00000024 64617461206974656D-
+    24 0000002D 7320746F2062652070-
+    24 00000036 6C6163656420696E74-
+    24 0000003F 6F2074686520617272-
+    24 00000048 617920776974682028-
+    24 00000051 6D6178696D756D2031-
+    24 0000005A 206D696C6C696F6E29-
+    24 00000063 3A2000             
+    25                                  
+    26 00000066 0A5468652061727261-     prompt_two db 10, "The array has been filled with non-deterministic random 64-bit float numbers.", 10, 0
+    26 0000006F 792068617320626565-
+    26 00000078 6E2066696C6C656420-
+    26 00000081 77697468206E6F6E2D-
+    26 0000008A 64657465726D696E69-
+    26 00000093 737469632072616E64-
+    26 0000009C 6F6D2036342D626974-
+    26 000000A5 20666C6F6174206E75-
+    26 000000AE 6D626572732E0A00   
+    27                                  
+    28 000000B6 546865206861726D6F-     hsum db "The harmonic sum is %1.180lf", 10, 10, 0
+    28 000000BF 6E69632073756D2069-
+    28 000000C8 732025312E3138306C-
+    28 000000D1 660A0A00           
+    29                                  
+    30 000000D5 546865206861726D6F-     hmean db "The harmonic mean is %1.180lf", 10, 10, 0
+    30 000000DE 6E6963206D65616E20-
+    30 000000E7 69732025312E313830-
+    30 000000F0 6C660A0A00         
+    31                                  
+    32 000000F5 546865207375706572-     end db "The supervisor will return the mean to the caller.", 10, 10, 0
+    32 000000FE 7669736F722077696C-
+    32 00000107 6C2072657475726E20-
+    32 00000110 746865206D65616E20-
+    32 00000119 746F20746865206361-
+    32 00000122 6C6C65722E0A0A00   
+    33                                  
+    34 0000012A 256C6400                intformat db "%ld", 0
+    35 0000012E 25312E3138306C6600      floatformat db "%1.180lf", 0
+    36                                  
+    37                                  segment .bss
+    38                                  
+    39 00000000 <res 7A1200h>           myArray resq 1000000
+    40                                  
+    41                                  segment .text
+    42                                  
+    43                                  supervisor:
+    44                                  
+    45 00000000 55                      push rbp                                          ;Backup rbp
+    46 00000001 4889E5                  mov  rbp,rsp                                      ;The base pointer now points to top of stack
+    47 00000004 57                      push rdi                                          ;Backup rdi
+    48 00000005 56                      push rsi                                          ;Backup rsi
+    49 00000006 52                      push rdx                                          ;Backup rdx
+    50 00000007 51                      push rcx                                          ;Backup rcx
+    51 00000008 4150                    push r8                                           ;Backup r8
+    52 0000000A 4151                    push r9                                           ;Backup r9
+    53 0000000C 4152                    push r10                                          ;Backup r10
+    54 0000000E 4153                    push r11                                          ;Backup r11
+    55 00000010 4154                    push r12                                          ;Backup r12
+    56 00000012 4155                    push r13                                          ;Backup r13
+    57 00000014 4156                    push r14                                          ;Backup r14
+    58 00000016 4157                    push r15                                          ;Backup r15
+    59 00000018 53                      push rbx                                          ;Backup rbx
+    60 00000019 9C                      pushf                                             ;Backup rflags
+    61                                  
+    62                                  
+    63                                  
+    64                                  ;print prompt
+    65 0000001A B800000000              mov rax, 0
+    66 0000001F 48BF-                   mov rdi, prompt
+    66 00000021 [0000000000000000] 
+    67 00000029 E8(00000000)            call printf
+    68                                  
+    69                                  
+    70                                  
+    71                                  ;take number input from user
+    72 0000002E 4881EC00040000          sub rsp, 1024
+    73 00000035 B800000000              mov rax, 0
+    74 0000003A 48BF-                   mov rdi, intformat
+    74 0000003C [2A01000000000000] 
+    75 00000044 4889E6                  mov rsi, rsp
+    76 00000047 E8(00000000)            call scanf
+    77 0000004C 4C8B3C24                mov r15, [rsp]
+    78 00000050 4881C400040000          add rsp, 1024
+    79                                  
+    80                                  ;fill array with inputted number
+    81 00000057 B800000000              mov rax, 0
+    82 0000005C 48BF-                   mov rdi, myArray
+    82 0000005E [0000000000000000] 
+    83 00000066 4C89FE                  mov rsi, r15
+    84 00000069 E8(00000000)            call random_fill_array
+    85 0000006E 4989C5                  mov r13, rax
+    86                                  
+    87                                  ;print prompt_two
+    88 00000071 B800000000              mov rax, 0
+    89 00000076 48BF-                   mov rdi, prompt_two
+    89 00000078 [6600000000000000] 
+    90 00000080 E8(00000000)            call printf
+    91                                  
+    92                                  ;print the array
+    93 00000085 B800000000              mov rax, 0
+    94 0000008A 48BF-                   mov rdi, myArray
+    94 0000008C [0000000000000000] 
+    95 00000094 4C89EE                  mov rsi, r13
+    96 00000097 E8(00000000)            call printArray
+    97                                  
+    98                                  
+    99                                  ;get harmonicsum
+   100 0000009C B800000000              mov rax, 0
+   101 000000A1 48BF-                   mov rdi, myArray
+   101 000000A3 [0000000000000000] 
+   102 000000AB 4C89EE                  mov rsi, r13
+   103 000000AE E8(00000000)            call harmonicsum
+   104 000000B3 F2440F10E0              movsd xmm12, xmm0
+   105 000000B8 F2440F10D9              movsd xmm11, xmm1
+   106                                  
+   107 000000BD B801000000              mov rax, 1
+   108 000000C2 48BF-                   mov rdi, hsum
+   108 000000C4 [B600000000000000] 
+   109 000000CC F2410F10C4              movsd xmm0, xmm12
+   110 000000D1 E8(00000000)            call printf
+   111                                  
+   112 000000D6 B801000000              mov rax, 1
+   113 000000DB 48BF-                   mov rdi, hmean
+   113 000000DD [D500000000000000] 
+   114 000000E5 F2410F10C3              movsd xmm0, xmm11
+   115 000000EA E8(00000000)            call printf
+   116                                  
+   117                                  
+   118                                  
+   119                                  
+   120                                  ;end
+   121 000000EF B800000000              mov rax, 0
+   122 000000F4 48BF-                   mov rdi, end
+   122 000000F6 [F500000000000000] 
+   123 000000FE E8(00000000)            call printf
+   124                                  
+   125                                  ;Return mean
+   126 00000103 F2410F10C3              movsd xmm0, xmm11
+   127                                  
+   128                                  ;===== Restore original values to integer registers ===============================================================================
+   129 00000108 9D                      popf                                                        ;Restore rflags
+   130 00000109 5B                      pop rbx                                                     ;Restore rbx
+   131 0000010A 415F                    pop r15                                                     ;Restore r15
+   132 0000010C 415E                    pop r14                                                     ;Restore r14
+   133 0000010E 415D                    pop r13                                                     ;Restore r13
+   134 00000110 415C                    pop r12                                                     ;Restore r12
+   135 00000112 415B                    pop r11                                                     ;Restore r11
+   136 00000114 415A                    pop r10                                                     ;Restore r10
+   137 00000116 4159                    pop r9                                                      ;Restore r9
+   138 00000118 4158                    pop r8                                                      ;Restore r8
+   139 0000011A 59                      pop rcx                                                     ;Restore rcx
+   140 0000011B 5A                      pop rdx                                                     ;Restore rdx
+   141 0000011C 5E                      pop rsi                                                     ;Restore rsi
+   142 0000011D 5F                      pop rdi                                                     ;Restore rdi
+   143 0000011E 5D                      pop rbp                                                     ;Restore rbp
+   144                                  
+   145 0000011F C3                      ret
+   146                                  
+   147                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
